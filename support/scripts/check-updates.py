@@ -750,7 +750,7 @@ if __name__ == '__main__':
         f = open('out.html', 'w')
         f.write(template)
 
-        for package_name in os.listdir(os.path.join(TOPDIR, 'package')):
+        for package_name in sorted(os.listdir(os.path.join(TOPDIR, 'package'))):
             if os.path.isfile(os.path.join(TOPDIR, 'package', package_name)):
                 continue
             nb_package += 1
