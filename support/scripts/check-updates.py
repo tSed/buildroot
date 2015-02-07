@@ -26,6 +26,12 @@ from logging import info, debug, error
 from subprocess import check_output
 import pickle
 
+def tostring(s, encoding):
+    if sys.version_info.major >= 3:
+        return str(s, encoding=encoding)
+    else:
+        return str(s)
+
 TOPDIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 template = """
@@ -389,6 +395,7 @@ class Package_git(Package):
             debug(url_tmp)
             request = urllib_request.urlopen(url_tmp).read()
             debug(request)
+            request = tostring(urllib_request.urlopen(url_tmp).read(), "UTF-8")
             res = re.findall(r'\'(git://.*)\'', request)
             if len(res) == 1:
                 self.url = res[0]
