@@ -16,6 +16,7 @@ import httplib2
 from ftplib import FTP
 import ftplib
 import re
+import os
 from os import listdir, walk
 from os.path import exists, isfile, join
 import shutil
@@ -24,6 +25,8 @@ import logging
 from logging import info, debug, error
 from subprocess import check_output
 import pickle
+
+TOPDIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 template = """
 <html>
@@ -224,7 +227,7 @@ class Package(object):
         return last_version
 
     def count_patches(self):
-        package_dir = join('../../package', self.package_name)
+        package_dir = join(TOPDIR, 'package', self.package_name)
         return len([f for root, dirs, files in walk(package_dir) for f in files if f.endswith('.patch')])
 
 
@@ -728,7 +731,7 @@ if __name__ == '__main__':
     nb_package_infra_other = 0
 
     logger = logging.getLogger()
-    list_var = check_output(["make -C ../.. printvars | grep '_SOURCE=\|_VERSION=\|_SITE=' > vars.list"], shell=True)
+    list_var = check_output(["make -C " + TOPDIR + " printvars | grep '_SOURCE=\|_VERSION=\|_SITE=' > vars.list"], shell=True)
 
     if len(sys.argv) == 2:
         logger.setLevel(logging.DEBUG)
@@ -745,8 +748,8 @@ if __name__ == '__main__':
         f = open('out.html', 'w')
         f.write(template)
 
-        for package_name in listdir('../../package'):
-            if isfile(join('../../package', package_name)):
+        for package_name in listdir(os.path.join(TOPDIR, 'package')):
+            if isfile(join(TOPDIR, 'package', package_name)):
                 continue
             nb_package += 1
 
@@ -785,7 +788,7 @@ if __name__ == '__main__':
             #write infra
 
             if (package_name != 'celt051'):
-                for line in open(join('../../package/', package_name, package_name + '.mk')):
+                for line in open(join(TOPDIR, 'package/', package_name, package_name + '.mk')):
                     if 'autotools-package' in line:
                         infra = 'autotools'
                         nb_package_infra_autotools += 1
