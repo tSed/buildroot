@@ -13,17 +13,13 @@ else:
     import urllib2 as urllib_request
     urllib_parse = urllib_request
 import httplib2
-from ftplib import FTP
 import ftplib
 import re
 import os
-from os import listdir, walk
-from os.path import exists, isfile, join
 import shutil
-from distutils.version import LooseVersion
+import distutils.version
 import logging
-from logging import info, debug, error
-from subprocess import check_output
+import subprocess
 import pickle
 
 def tostring(s, encoding):
@@ -104,7 +100,7 @@ td.other {
 # latencytop site is down
 # ipset, cups, noip, fconfig > impossible to list
 # libsvgtiny moved to git
-# sstrip and libnfc-llcp > website error ?
+# sstrip and libnfc-llcp > website logging.error ?
 # jpeg is only use to select other packages
 # lftp need to be checked
 # libmodplug : sourceforge package with different projects
@@ -153,8 +149,8 @@ class Package(object):
             self.package_name = source
         self.last_version = None
         self.provider = None
-        info('site :' + self.url)
-        info('version :' + self.version)
+        logging.info('site :' + self.url)
+        logging.info('version :' + self.version)
 
     def get_url_and_version(self, package_name):
         site_url = ''
@@ -162,7 +158,7 @@ class Package(object):
         version = ''
         package_name_tmp = self.package_name.upper().replace('-','_')
 
-        debug('package name : ' + package_name)
+        logging.debug('package name : ' + package_name)
 
         for line in open('vars.list'):
             if line.startswith(package_name_tmp + '_SITE'):
@@ -181,28 +177,28 @@ class Package(object):
             source = source.replace('-gpl', '')
             source = source.split('.')[0]
             if '_' in source:
-                info('source under:' + source)
+                logging.info('source under:' + source)
                 if re.search(r'_\D', source) == None:
                     source = source.split('_')[0]
 
-            debug('source :' + source)
+            logging.debug('source :' + source)
 
         return (site_url, source, version)
 
     def retrieve(self):
-        debug('function cache')
-        debug(self.package_name)
+        logging.debug('function cache')
+        logging.debug(self.package_name)
 
         if USE_CACHE and isfile('site/' + self.package_name):
-            debug('cache found !')
+            logging.debug('cache found !')
             f = open('site/' + self.package_name, 'r')
             result = pickle.load(f)
             f.close()
         else:
-            info('retrieving : ' + self.package_name)
+            logging.info('retrieving : ' + self.package_name)
             result = self.retrieve_specific()
             if USE_CACHE:
-                debug('writing cache for ' + self.package_name)
+                logging.debug('writing cache for ' + self.package_name)
                 f = open('site/' + self.package_name, 'w')
                 pickle.dump(result, f)
                 f.close()
@@ -210,31 +206,31 @@ class Package(object):
         return result;
 
     def retrieve_specific(self):
-        error('should not be called')
+        logging.error('should not be called')
         return None
 
     def get_last_version(self):
         try:
-            debug('1')
+            logging.debug('1')
             self.result = self.retrieve()
-            debug('2')
-            debug(self.result)
+            logging.debug('2')
+            logging.debug(self.result)
         except:
-            error('website error')
-            return 'website error'
+            logging.error('website logging.error')
+            return 'website logging.error'
         self.last_version = self.get_last_version_specific()
         return self.last_version
 
     def get_last_version_specific(self):
-        error('should not be called')
+        logging.error('should not be called')
         return None
 
     def clean_version(self):
         return last_version
 
     def count_patches(self):
-        package_dir = join(TOPDIR, 'package', self.package_name)
-        return len([f for root, dirs, files in walk(package_dir) for f in files if f.endswith('.patch')])
+        package_dir = os.path.join(TOPDIR, 'package', self.package_name)
+        return len([f for root, dirs, files in os.walk(package_dir) for f in files if f.endswith('.patch')])
 
 
 class Package_www(Package):
@@ -245,35 +241,35 @@ class Package_www(Package):
         super(Package_www, self).__init__(package_name)
         self.provider = 'www'
 
-        debug('www website')
+        logging.debug('www website')
 
     def retrieve_specific(self):
-        debug('retrieve www')
+        logging.debug('retrieve www')
         return urllib_request.urlopen(self.url).read()
 
     def get_last_version_specific(self):
-        debug('get_last_version_www')
+        logging.debug('get_last_version_www')
         package_name_tmp = self.package_name.replace('+', '\+')
-        debug('package_name : %s' % package_name_tmp)
-        debug(self.result)
+        logging.debug('package_name : %s' % package_name_tmp)
+        logging.debug(self.result)
         regex = re.compile(r'%s(?:-|.)(.*?)(?:.zip|.tar.gz|.tar.xz|.tgz|.tar.bz2|.js|.bin)' % package_name_tmp, re.IGNORECASE)
         versions = regex.findall(self.result)
-        debug(versions)
+        logging.debug(versions)
         versions = [i for i in versions if re.match(r'\D+-', i) == None]
-        debug(versions)
+        logging.debug(versions)
         versions = helper_clean_versions(versions)
-        debug(versions)
+        logging.debug(versions)
         #versions = [i for i in versions if re.match(r'\D*-*', i) == None]
         #debug(versions)
         if (versions == None) or (len(versions) == 0):
-            error('can\'t determine site version')
+            logging.error('can\'t determine site version')
             return None
 
         try:
             last_version = helper_get_last_version(versions)
-            debug(last_version)
+            logging.debug(last_version)
         except:
-            error('can\'t determine site version')
+            logging.error('can\'t determine site version')
             return None
 
         return last_version
@@ -287,43 +283,43 @@ class Package_ftp(Package):
         self.provider = 'ftp'
 
     def retrieve_specific(self):
-        debug('retrieve ftp')
+        logging.debug('retrieve ftp')
         result = None
-        debug('1' + self.url);
+        logging.debug('1' + self.url);
         base_url = self.url.split('/')[2]
-        debug('2' + base_url + '--' + self.url)
+        logging.debug('2' + base_url + '--' + self.url)
         directory = self.url.split(base_url)[1]
-        debug('3')
-        debug('caching :' + base_url + ' ' + directory)
+        logging.debug('3')
+        logging.debug('caching :' + base_url + ' ' + directory)
         ftp = FTP(base_url)
-        debug('4');
+        logging.debug('4');
         ftp.login()
-        debug('5');
+        logging.debug('5');
         ftp.cwd(directory)
-        debug('6');
+        logging.debug('6');
         result = []
         ftp.retrlines('LIST', result.append)
-        debug('7');
+        logging.debug('7');
         ftp.quit()
         return result
 
     def get_last_version_specific(self):
         versions = [i.split(' ')[-1] for i in self.result]
-        debug(versions)
+        logging.debug(versions)
         package_name = self.package_name.replace('+', '\+')
         versions = [re.findall(r'%s(?:-|.|)(.*?)(?:.zip|.tar.gz|.tgz|.tar.xz|.tar.bz2|.js|.bin)' % package_name, i) for i in versions]
-        debug(versions)
+        logging.debug(versions)
         versions = [i[0] for i in versions if i != []]
-        debug(versions)
+        logging.debug(versions)
         versions = helper_clean_versions(versions)
-        debug(versions)
+        logging.debug(versions)
         versions = [i for i in versions if re.match(r'\D+-', i) == None]
-        debug(versions)
+        logging.debug(versions)
 
         try:
             last_version = helper_get_last_version(versions)
         except:
-            error('can\'t determine last ftp version')
+            logging.error('can\'t determine last ftp version')
             return None
 
         return last_version
@@ -337,16 +333,16 @@ class Package_svn(Package):
         self.provider = 'svn'
 
     def retrieve_specific(self):
-        debug('retrieve svn')
-        return check_output(["svn log --xml %s | grep \"revision\" | head -1" % self.url], shell=True)
+        logging.debug('retrieve svn')
+        return subprocess.check_output(["svn log --xml %s | grep \"revision\" | head -1" % self.url], shell=True)
 
     def get_last_version_specific(self):
-        debug('get_last_version_specific svn')
+        logging.debug('get_last_version_specific svn')
         try:
             last_version = self.result.split('revision="')[1].split('"')[0]
-            debug(last_version)
+            logging.debug(last_version)
         except:
-            error('can\'t determine svn version')
+            logging.error('can\'t determine svn version')
             return None
 
         return last_version
@@ -364,19 +360,19 @@ class Package_launchpad(Package_www):
 
     def get_last_version_specific(self):
         versions = re.findall(r'%s(?:-|.)(.*?)(?:.zip|.tar.gz|.tgz|.tar.xz|.tar.bz2|.bin)' % self.package_name, self.result)
-        debug(versions)
+        logging.debug(versions)
         versions = helper_clean_versions(versions)
-        debug(versions)
+        logging.debug(versions)
         versions = [i for i in versions if re.match(r'\D*-', i) == None]
-        debug(versions)
+        logging.debug(versions)
         versions = [i for i in versions if re.search(r'-(.*)', i) == None]
-        debug(versions)
+        logging.debug(versions)
 
         try:
             last_version = helper_get_last_version(versions)
             last_version = last_version.split('/')[-1]
         except:
-            error('can\'t determine launchpad version')
+            logging.error('can\'t determine launchpad version')
             return None
 
         return last_version
@@ -392,22 +388,21 @@ class Package_git(Package):
         # get real git url from cgit
         if 'cgit' in self.url and not self.url.endswith('.git'):
             url_tmp = self.url.replace('snapshot', '')
-            debug(url_tmp)
-            request = urllib_request.urlopen(url_tmp).read()
-            debug(request)
+            logging.debug(url_tmp)
             request = tostring(urllib_request.urlopen(url_tmp).read(), "UTF-8")
+            logging.debug(request)
             res = re.findall(r'\'(git://.*)\'', request)
             if len(res) == 1:
                 self.url = res[0]
             else :
                 res = re.findall(r'<tr><td colspan=\'\d\'><a href=\'([http.?].*?)\'>', request)
-                debug(res)
-                self.url = res[0]
-            debug(self.url)
+                logging.debug(res)
+                self.url = res[0] if res else None
+            logging.debug(self.url)
 
 
     def retrieve_specific(self):
-        debug('retrieve git')
+        logging.debug('retrieve git')
 
         if len(self.version) == 40:
             if 'github.com' in self.url:
@@ -418,13 +413,13 @@ class Package_git(Package):
             if 'git://' in self.url:
                 git_url = self.url
 
-            result = check_output(["git ls-remote --heads %s" % git_url], shell=True)
-            debug(result)
+            result = subprocess.check_output(["git ls-remote --heads %s" % git_url], shell=True)
+            logging.debug(result)
         else:
             # if version is a real version number
             if ('github.com' in self.url):
                 git_url = self.url.split('github.com/')[1]
-                debug(git_url)
+                logging.debug(git_url)
                 if ('downloads' in git_url):
                     git_url = git_url.replace('downloads/', '')
                     if git_url[-1] == '/':
@@ -438,37 +433,37 @@ class Package_git(Package):
                    git_url = 'https://github.com/' + git_url + '.git'
                 else:
                     git_url = 'https://github.com/' + git_url
-                debug(git_url)
+                logging.debug(git_url)
             else:
                 git_url = self.url
 
-            result = check_output(["git ls-remote --tags %s" % git_url], shell=True)
+            result = subprocess.check_output(["git ls-remote --tags %s" % git_url], shell=True)
         return result
 
     def get_last_version_specific(self):
         # if version refers to a commit id
         if len(self.version) == 40:
             last_version = re.search(r'(.*)\trefs/heads/master', self.result).group(1)
-            debug(last_version)
+            logging.debug(last_version)
         else:
             versions = [i.split('\t') for i in self.result.split('\n')]
             versions = [i for i in versions if i[0] != '']
-            debug(versions)
+            logging.debug(versions)
             versions = [i[1].replace('refs/tags/', '') for i in versions]
-            debug(versions)
+            logging.debug(versions)
             versions = [i.replace('_', '.') for i in versions]
-            debug(versions)
+            logging.debug(versions)
             versions = [i for i in versions if '^{}' not in i]
-            debug(versions)
+            logging.debug(versions)
             #versions = [i for i in versions if re.match(r'\D*-', i) == None]
             #debug(versions)
             versions = helper_clean_versions(versions)
-            debug(versions)
+            logging.debug(versions)
             try:
                 last_version = helper_get_last_version(versions)
-                debug(last_version)
+                logging.debug(last_version)
             except:
-                error('can\'t determine git version')
+                logging.error('can\'t determine git version')
                 return None
 
             # when version starts with v, this should be uniformized (does this word exist?)
@@ -499,33 +494,33 @@ class Package_sourceforge(Package):
         elif '/p/' in self.url:
             self.package_name = self.url.split('/p/')[1].split('/')[0]
         else:
-            error('Can\'t find sf package name')
+            logging.error('Can\'t find sf package name')
             return None
         self.url = 'http://sourceforge.net/projects/%s/files/latest/download' % self.package_name
 
 
     def retrieve_specific(self):
-        debug('retrieve sourceforge')
+        logging.debug('retrieve sourceforge')
         result = getUrlRedirection(self.url)
         #result = urllib_request.urlopen(self.url).geturl()
-        debug('retrieve_sf' + self.url)
+        logging.debug('retrieve_sf' + self.url)
 
     def get_last_version_specific(self):
-        debug('get_last_version_specific')
+        logging.debug('get_last_version_specific')
         result = urllib_parse.unquote(self.result) # replace all hexa caracters like %20
-        debug(result)
+        logging.debug(result)
 
         last_version = result.split('/')[-1]
-        debug(last_version)
+        logging.debug(last_version)
         filename = self.package_name.replace('+', '\+')
         regex = re.compile(r'%s(-|_|)(.*)(.zip|.tar.gz|.tgz|.tar.xz|.tar.bz2|.bin)' % filename, re.IGNORECASE)
         last_version = regex.search(last_version)
         if last_version == None:
             return None
         last_version = last_version.group(2)
-        debug(last_version)
+        logging.debug(last_version)
         last_version = helper_clean_last_version(last_version)
-        debug(last_version)
+        logging.debug(last_version)
 
         return last_version
 
@@ -541,21 +536,21 @@ class Package_googlecode(Package_www):
         self.provider = 'googlecode'
 
     def retrieve_specific(self):
-        debug('retrieve googlecode')
+        logging.debug('retrieve googlecode')
         versions = re.findall(r'%s(?:-|.)(.*?)(?:.zip|.tar.gz|.tgz|.tar.xz|.tar.bz2|.bin)' % filename, self.result)
-        debug(versions)
+        logging.debug(versions)
         versions = helper_clean_versions(versions)
-        debug(versions)
+        logging.debug(versions)
         versions = [i for i in versions if re.match(r'\D*-', i) == None]
-        debug(versions)
+        logging.debug(versions)
         versions = [i for i in versions if re.search(r'-(.*)', i) == None]
-        debug(versions)
+        logging.debug(versions)
 
         try:
             last_version = helper_get_last_version(versions)
             last_version = last_version.split('/')[-1]
         except:
-            error('can\'t determine version from googlecode')
+            logging.error('can\'t determine version from googlecode')
             return None
 
         return last_version
@@ -571,24 +566,24 @@ class Package_pecl_php(Package):
         self.provider = 'pecl.php.net'
 
     def retrieve_specific(self):
-        debug('retrieve pecl.php.net')
+        logging.debug('retrieve pecl.php.net')
         response = urllib_request.urlopen(self.url)
-        debug(response.info().getheader('Content-Disposition'))
+        logging.debug(response.info().getheader('Content-Disposition'))
         return response.info().getheader('Content-Disposition')
 
     def get_last_version_specific(self):
-        debug('retrieve pecl_php')
-        debug(self.result)
+        logging.debug('retrieve pecl_php')
+        logging.debug(self.result)
         versions = re.findall(r'%s(?:-|.)(.*?)(?:.zip|.tar.gz|.tgz|.tar.xz|.tar.bz2)' % self.package_name, self.result)
-        debug(versions)
+        logging.debug(versions)
         versions = helper_clean_versions(versions)
-        debug(versions)
+        logging.debug(versions)
 
         try:
             last_version = helper_get_last_version(versions)
             last_version = last_version.split('/')[-1]
         except:
-            error('can\'t determine version from pecl.php.net')
+            logging.error('can\'t determine version from pecl.php.net')
             return None
 
         return last_version
@@ -605,14 +600,14 @@ def package_factory(package_name):
     package = Package(package_name)
 
     if package_name in exception_list:
-        error('Package in exception list! TODO later')
+        logging.error('Package in exception list! TODO later')
         package.provider = 'exception list'
     elif package_name in website_error_list:
         package.provider = 'website not reachable'
-        error('site not reachable!')
+        logging.error('site not reachable!')
     elif ('sf.net' in package.url or 'sourceforge.net' in package.url):
         package.provider = 'skip sf'
-        error('skip sf')
+        logging.error('skip sf')
     else:
         url = package.url
         if 'svn' in url:
@@ -665,8 +660,8 @@ def helper_get_last_version(search_str):
     return helper_clean_last_version(last_version)
 
 def helper_clean_versions(versions):
-    debug('avant : ')
-    debug(versions)
+    logging.debug('avant : ')
+    logging.debug(versions)
     # TODO remove 0, and use a variable for versions[idx] ?, use xrange ?
     for idx in range(0, len(versions)):
         if '/' in versions[idx]:
@@ -675,8 +670,8 @@ def helper_clean_versions(versions):
         #    versions[idx] = ''
         if re.search(r'\d', versions[idx]) == None:
             versions[idx] = ''
-    debug('apres : ')
-    debug(versions)
+    logging.debug('apres : ')
+    logging.debug(versions)
 
     versions = [i for i in versions if ('<' not in i) and ('>' not in i)]
     #versions = [i for i in versions if re.match('\D*-', i) == None]
@@ -714,16 +709,16 @@ def helper_clean_last_version(last_version):
     return last_version
 
 def check(package_name):
-    info('Checking package: ' + package_name)
+    logging.info('Checking package: ' + package_name)
 
     package = package_factory(package_name)
     last_version = package.get_last_version()
-#    if last_version == 'website error':
+#    if last_version == 'website logging.error':
 #        last_version = 'unknown'
 #        provider = 'website not found'
 #
 #    if last_version != None:
-#        info('last version :' + last_version)
+#        logging.info('last version :' + last_version)
 
     return package
 
@@ -738,13 +733,13 @@ if __name__ == '__main__':
     nb_package_infra_other = 0
 
     logger = logging.getLogger()
-    list_var = check_output(["make -C " + TOPDIR + " printvars | grep '_SOURCE=\|_VERSION=\|_SITE=' > vars.list 2>/dev/null"], shell=True)
+    list_var = subprocess.check_output(["make -C " + TOPDIR + " printvars | grep '_SOURCE=\|_VERSION=\|_SITE=' > vars.list 2>/dev/null"], shell=True)
 
     if len(sys.argv) == 2:
         logger.setLevel(logging.DEBUG)
         package = check(sys.argv[1])
-        debug(package.package_name + ' ' + package.version + ' ' + str(package.last_version) + ' ' + package.provider)
-        debug('patch count : ' + str(package.patch_count))
+        logging.debug(package.package_name + ' ' + package.version + ' ' + str(package.last_version) + ' ' + package.provider)
+        logging.debug('patch count : ' + str(package.patch_count))
     else:
         fh = logging.FileHandler('res.log', 'w')
         formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
@@ -755,8 +750,8 @@ if __name__ == '__main__':
         f = open('out.html', 'w')
         f.write(template)
 
-        for package_name in listdir(os.path.join(TOPDIR, 'package')):
-            if isfile(join(TOPDIR, 'package', package_name)):
+        for package_name in os.listdir(os.path.join(TOPDIR, 'package')):
+            if os.path.isfile(os.path.join(TOPDIR, 'package', package_name)):
                 continue
             nb_package += 1
 
@@ -795,7 +790,7 @@ if __name__ == '__main__':
             #write infra
 
             if (package_name != 'celt051'):
-                for line in open(join(TOPDIR, 'package/', package_name, package_name + '.mk')):
+                for line in open(os.path.join(TOPDIR, 'package/', package_name, package_name + '.mk')):
                     if 'autotools-package' in line:
                         infra = 'autotools'
                         nb_package_infra_autotools += 1
@@ -826,7 +821,7 @@ if __name__ == '__main__':
 
             f.write('<td class="%s">%s</td><td class="%s">%s</td>' % (version_class, version_clean_output(package.version), version_class, version_clean_output(package.last_version)))
 
-            #for debug only, will be removed later
+            #for logging.debug only, will be removed later
             f.write('<td>%s</td><td>%s</td></tr>' % (package.provider, status))
 
         f.write('</tbody></table>')
@@ -839,5 +834,5 @@ if __name__ == '__main__':
 
         f.write('</body></html>')
 
-        info('Stats: %d packages (%d up to date, %d old and %d unknown)<br/>' % (nb_package, nb_package_uptodate, nb_package_toupdate, nb_package_unknown))
+        logging.info('Stats: %d packages (%d up to date, %d old and %d unknown)<br/>' % (nb_package, nb_package_uptodate, nb_package_toupdate, nb_package_unknown))
     print('done!')
