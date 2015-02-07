@@ -3,8 +3,15 @@
 """
 check-updates script
 """
+from __future__ import print_function
+
 import sys
-import urllib2
+if sys.version_info.major >= 3:
+    import urllib.request as urllib_request
+    import urllib.parse as urllib_parse
+else:
+    import urllib2 as urllib_request
+    urllib_parse = urllib_request
 import httplib2
 from ftplib import FTP
 import ftplib
@@ -233,7 +240,7 @@ class Package_www(Package):
 
     def retrieve_specific(self):
         debug('retrieve www')
-        return urllib2.urlopen(self.url).read()
+        return urllib_request.urlopen(self.url).read()
 
     def get_last_version_specific(self):
         debug('get_last_version_www')
@@ -377,7 +384,7 @@ class Package_git(Package):
         if 'cgit' in self.url and not self.url.endswith('.git'):
             url_tmp = self.url.replace('snapshot', '')
             debug(url_tmp)
-            request = urllib2.urlopen(url_tmp).read()
+            request = urllib_request.urlopen(url_tmp).read()
             debug(request)
             res = re.findall(r'\'(git://.*)\'', request)
             if len(res) == 1:
@@ -490,12 +497,12 @@ class Package_sourceforge(Package):
     def retrieve_specific(self):
         debug('retrieve sourceforge')
         result = getUrlRedirection(self.url)
-        #result = urllib2.urlopen(self.url).geturl()
+        #result = urllib_request.urlopen(self.url).geturl()
         debug('retrieve_sf' + self.url)
 
     def get_last_version_specific(self):
         debug('get_last_version_specific')
-        result = urllib2.unquote(self.result) # replace all hexa caracters like %20
+        result = urllib_parse.unquote(self.result) # replace all hexa caracters like %20
         debug(result)
 
         last_version = result.split('/')[-1]
@@ -555,7 +562,7 @@ class Package_pecl_php(Package):
 
     def retrieve_specific(self):
         debug('retrieve pecl.php.net')
-        response = urllib2.urlopen(self.url)
+        response = urllib_request.urlopen(self.url)
         debug(response.info().getheader('Content-Disposition'))
         return response.info().getheader('Content-Disposition')
 
@@ -823,4 +830,4 @@ if __name__ == '__main__':
         f.write('</body></html>')
 
         info('Stats: %d packages (%d up to date, %d old and %d unknown)<br/>' % (nb_package, nb_package_uptodate, nb_package_toupdate, nb_package_unknown))
-    print 'done!'
+    print('done!')
