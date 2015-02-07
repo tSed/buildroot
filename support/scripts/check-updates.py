@@ -731,7 +731,7 @@ if __name__ == '__main__':
     nb_package_infra_other = 0
 
     logger = logging.getLogger()
-    list_var = check_output(["make -C " + TOPDIR + " printvars | grep '_SOURCE=\|_VERSION=\|_SITE=' > vars.list"], shell=True)
+    list_var = check_output(["make -C " + TOPDIR + " printvars | grep '_SOURCE=\|_VERSION=\|_SITE=' > vars.list 2>/dev/null"], shell=True)
 
     if len(sys.argv) == 2:
         logger.setLevel(logging.DEBUG)
