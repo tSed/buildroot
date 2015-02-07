@@ -145,7 +145,7 @@ class Package(object):
         self.version = version
         #count patch before eventually changing package_name
         self.patch_count = self.count_patches()
-        if source != None and source != '':
+        if source:
             self.package_name = source
         self.last_version = None
         self.provider = None
@@ -178,7 +178,7 @@ class Package(object):
             source = source.split('.')[0]
             if '_' in source:
                 logging.info('source under:' + source)
-                if re.search(r'_\D', source) == None:
+                if re.search(r'_\D', source) is None:
                     source = source.split('_')[0]
 
             logging.debug('source :' + source)
@@ -255,13 +255,13 @@ class Package_www(Package):
         regex = re.compile(r'%s(?:-|.)(.*?)(?:.zip|.tar.gz|.tar.xz|.tgz|.tar.bz2|.js|.bin)' % package_name_tmp, re.IGNORECASE)
         versions = regex.findall(self.result)
         logging.debug(versions)
-        versions = [i for i in versions if re.match(r'\D+-', i) == None]
+        versions = [i for i in versions if re.match(r'\D+-', i) is None]
         logging.debug(versions)
         versions = helper_clean_versions(versions)
         logging.debug(versions)
-        #versions = [i for i in versions if re.match(r'\D*-*', i) == None]
+        #versions = [i for i in versions if re.match(r'\D*-*', i) is None]
         #debug(versions)
-        if (versions == None) or (len(versions) == 0):
+        if (versions is None) or (len(versions) == 0):
             logging.error('can\'t determine site version')
             return None
 
@@ -313,7 +313,7 @@ class Package_ftp(Package):
         logging.debug(versions)
         versions = helper_clean_versions(versions)
         logging.debug(versions)
-        versions = [i for i in versions if re.match(r'\D+-', i) == None]
+        versions = [i for i in versions if re.match(r'\D+-', i) is None]
         logging.debug(versions)
 
         try:
@@ -363,9 +363,9 @@ class Package_launchpad(Package_www):
         logging.debug(versions)
         versions = helper_clean_versions(versions)
         logging.debug(versions)
-        versions = [i for i in versions if re.match(r'\D*-', i) == None]
+        versions = [i for i in versions if re.match(r'\D*-', i) is None]
         logging.debug(versions)
-        versions = [i for i in versions if re.search(r'-(.*)', i) == None]
+        versions = [i for i in versions if re.search(r'-(.*)', i) is None]
         logging.debug(versions)
 
         try:
@@ -455,7 +455,7 @@ class Package_git(Package):
             logging.debug(versions)
             versions = [i for i in versions if '^{}' not in i]
             logging.debug(versions)
-            #versions = [i for i in versions if re.match(r'\D*-', i) == None]
+            #versions = [i for i in versions if re.match(r'\D*-', i) is None]
             #debug(versions)
             versions = helper_clean_versions(versions)
             logging.debug(versions)
@@ -515,7 +515,7 @@ class Package_sourceforge(Package):
         filename = self.package_name.replace('+', '\+')
         regex = re.compile(r'%s(-|_|)(.*)(.zip|.tar.gz|.tgz|.tar.xz|.tar.bz2|.bin)' % filename, re.IGNORECASE)
         last_version = regex.search(last_version)
-        if last_version == None:
+        if last_version is None:
             return None
         last_version = last_version.group(2)
         logging.debug(last_version)
@@ -541,9 +541,9 @@ class Package_googlecode(Package_www):
         logging.debug(versions)
         versions = helper_clean_versions(versions)
         logging.debug(versions)
-        versions = [i for i in versions if re.match(r'\D*-', i) == None]
+        versions = [i for i in versions if re.match(r'\D*-', i) is None]
         logging.debug(versions)
-        versions = [i for i in versions if re.search(r'-(.*)', i) == None]
+        versions = [i for i in versions if re.search(r'-(.*)', i) is None]
         logging.debug(versions)
 
         try:
@@ -640,7 +640,7 @@ def version_clean_output(string):
           - replace None by 'None'
           - return the first 8 characters if it's a 40 characters hash
     """
-    if string == None:
+    if string is None:
         return 'None'
     if len(string) == 40:
         return string[:8]
@@ -668,13 +668,13 @@ def helper_clean_versions(versions):
             versions[idx] = versions[idx].split('/')[-1]
         #if 'latest' in versions[idx]:
         #    versions[idx] = ''
-        if re.search(r'\d', versions[idx]) == None:
+        if re.search(r'\d', versions[idx]) is None:
             versions[idx] = ''
     logging.debug('apres : ')
     logging.debug(versions)
 
     versions = [i for i in versions if ('<' not in i) and ('>' not in i)]
-    #versions = [i for i in versions if re.match('\D*-', i) == None]
+    #versions = [i for i in versions if re.match('\D*-', i) is None]
     versions = [i for i in versions if i!= '' and i!='xxx']
     versions = [i for i in versions if i!='cgi' and i != 'win32']
     versions = [i for i in versions if ' ' not in i]
@@ -703,7 +703,7 @@ def helper_clean_last_version(last_version):
     last_version = last_version.replace('-xdoc', '')
     last_version = last_version.replace('-gpl', '')
 
-    #if last_version != None and last_version != '' and last_version[0] == '.':
+    #if last_version and last_version[0] == '.':
     #    last_version = last_version[1:]
 
     return last_version
@@ -717,7 +717,7 @@ def check(package_name):
 #        last_version = 'unknown'
 #        provider = 'website not found'
 #
-#    if last_version != None:
+#    if not last_version is None:
 #        logging.info('last version :' + last_version)
 
     return package
@@ -761,10 +761,10 @@ if __name__ == '__main__':
             have_licence_files = True
             package = check(package_name)
 
-            if package.version == None or package.provider == 'exception list' or package.provider == 'website not reachable' or package.provider == 'alioth.debian.org' or package.version == 'undefined':
+            if package.version is None or package.provider == 'exception list' or package.provider == 'website not reachable' or package.provider == 'alioth.debian.org' or package.version == 'undefined':
                 status = 'DONTCHECK'
                 version_class = 'other'
-            elif package.last_version == None:
+            elif package.last_version is None:
                 nb_package_unknown += 1
                 status = 'UNKNOWN'
                 version_class = 'other'
