@@ -1,0 +1,9 @@
+config BR2_PACKAGE_HOST_CLANG
+	bool "host clang"
+	depends on BR2_PACKAGE_HOST_LLVM_ARCH_SUPPORTS
+	depends on BR2_BINUTILS_VERSION >= 2.24
+	select BR2_PACKAGE_HOST_LLVM
+	help
+	  Clang is a C language family frontend for LLVM.
+
+	  http://clang.llvm.org
