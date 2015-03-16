@@ -15,7 +15,7 @@ BEECRYPT_CONF_OPTS = \
 	--disable-expert-mode \
 	--without-java \
 	--without-python \
-	--disable-openmp
+	$(if $(BR2_TOOLCHAIN_HAS_OPENMP),--enable,--disable)-openmp
 
 # disable optimized m68k assembly as it doesn't compile for coldfire
 ifeq ($(BR2_m68k_cf),y)
