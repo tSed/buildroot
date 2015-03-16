@@ -15,7 +15,7 @@ BEECRYPT_CONF_OPTS = \
 	--disable-expert-mode \
 	--without-java \
 	--without-python \
-	--disable-openmp
+	$(if $(BR2_TOOLCHAIN_HAS_OPENMP),--enable,--disable)-openmp
 
 ifeq ($(BR2_PACKAGE_BEECRYPT_CPP),y)
 BEECRYPT_DEPENDENCIES += icu
