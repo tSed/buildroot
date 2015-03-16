@@ -318,6 +318,20 @@ check_arm_abi = \
 	rm -f $(BUILD_DIR)/.br-toolchain-test.tmp*
 
 #
+# Check that the external toolchain supports OpenMP
+#
+# $1: cross-gcc path
+#
+check_openmp = \
+	__CROSS_CC=$(strip $1) ; \
+	printf '\#include <omp.h>\nint main(void) { return omp_get_num_procs(); }\n' | \
+		$${__CROSS_CC} -fopenmp -lgomp -x c -o /dev/null - ; \
+	if test $$? -ne 0 ; then \
+		echo "OpenMP support is selected but is not available in external toolchain" ; \
+		exit 1 ; \
+	fi
+
+#
 # Check that the external toolchain supports C++
 #
 # $1: cross-g++ path
