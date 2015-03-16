@@ -19,7 +19,7 @@ HOST_GETTEXT_DEPENDENCIES = host-libxml2
 GETTEXT_CONF_OPTS += \
 	--disable-libasprintf \
 	--disable-acl \
-	--disable-openmp \
+	$(if $(BR2_TOOLCHAIN_HAS_OPENMP),--enable,--disable)-openmp \
 	--disable-rpath \
 	--disable-java \
 	--disable-native-java \
