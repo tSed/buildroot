@@ -94,6 +94,10 @@ ifeq ($(BR2_TOOLCHAIN_HAS_FORTRAN),y)
 TOOLCHAIN_EXTERNAL_LIBS += libgfortran.so.* libquadmath.so*
 endif
 
+ifeq ($(BR2_TOOLCHAIN_HAS_OPENMP),y)
+TOOLCHAIN_EXTERNAL_LIBS += libgomp.so.*
+endif
+
 TOOLCHAIN_EXTERNAL_LIBS += $(call qstrip,$(BR2_TOOLCHAIN_EXTRA_EXTERNAL_LIBS))
 
 # Details about sysroot directory selection.
