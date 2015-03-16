@@ -22,7 +22,7 @@ IMAGEMAGICK_CONF_ENV = ac_cv_sys_file_offset_bits=64
 
 IMAGEMAGICK_CONF_OPTS = \
 	--program-transform-name='s,,,' \
-	--disable-openmp \
+	$(if $(BR2_TOOLCHAIN_HAS_OPENMP),--enable,--disable)-openmp \
 	--without-perl \
 	--without-wmf \
 	--without-openexr \
