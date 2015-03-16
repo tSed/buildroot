@@ -17,7 +17,7 @@ HOST_GETTEXT_DEPENDENCIES = # we don't want the libiconv dependency
 GETTEXT_CONF_OPTS += \
 	--disable-libasprintf \
 	--disable-acl \
-	--disable-openmp \
+	$(if $(BR2_TOOLCHAIN_HAS_OPENMP),--enable,--disable)-openmp \
 	--disable-rpath \
 	--disable-java \
 	--disable-native-java \
