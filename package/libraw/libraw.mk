@@ -11,7 +11,7 @@ LIBRAW_INSTALL_STAGING = YES
 LIBRAW_CONF_OPTS += \
 	--disable-examples \
 	--disable-lcms \
-	--disable-openmp \
+	$(if $(BR2_TOOLCHAIN_HAS_OPENMP),--enable,--disable)-openmp \
 	--disable-demosaic-pack-gpl2 \
 	--disable-demosaic-pack-gpl3
 LIBRAW_LICENSE = LGPLv2.1 or CDDL 1.0 or LibRaw Software License 27032010
