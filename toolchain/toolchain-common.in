@@ -23,6 +23,9 @@ config BR2_ENABLE_LOCALE
 config BR2_INSTALL_LIBSTDCPP
 	bool
 
+config BR2_TOOLCHAIN_HAS_OPENMP
+	bool
+
 config BR2_TOOLCHAIN_HAS_THREADS
 	bool
 
