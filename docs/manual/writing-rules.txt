@@ -139,3 +139,17 @@ http://www.methods.co.nz/asciidoc/[asciidoc] format.
 
 For further details about the http://www.methods.co.nz/asciidoc/[asciidoc]
 syntax, refer to http://www.methods.co.nz/asciidoc/userguide.html[].
+
+=== Other global rules
+
+==== Symlinks
+
+In Buildroot, only relative symlinks are used, especially those created in
+`*.mk` files.
+
+This ensure that symlinks, both in the target tree (under `<output>/target`) and
+once deployed on the actual target device, point to the right location. This
+makes easier (and less confusing) debugging/checking the target filesystem.
+
+*Note.* One can still convert the relative symlinks into absolute symlinks using
+a post-build script.
