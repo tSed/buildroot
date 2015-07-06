@@ -1,2 +1,2 @@
-# SHA256 hash computed locally.
-sha256	b39a69e501b49e8f73ff75c9ad72313681ee58d6f430bfad4d81846fe92eb9ce	llvm-3.6.0.src.tar.xz
+# Locally computed after signature verification:
+sha256 2f00c615913aa0b56607ee1548936e60ad2aa89e6d56f23fb032a4463366fc7a llvm-3.6.1.src.tar.xz

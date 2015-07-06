@@ -12,7 +12,18 @@ LLVM_LICENSE_FILES = LICENSE.TXT
 
 HOST_LLVM_DEPENDENCIES = host-libxml2 host-zlib host-python
 
-HOST_LLVM_ENABLED_TARGETS := $(ARCH),$(if $(BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_R600),r600)
+HOST_LLVM_ENABLED_TARGETS := \
+	$(shell echo $(ARCH) | \
+	sed -e s/i.86/x86/ \
+	    -e s/sun4u/sparc/ \
+	    -e s/arm64.*/arm64/ \
+	    -e s/arm.*/arm/ \
+	    -e s/sa110/arm/ \
+	    -e s/ppc.*/powerpc/ \
+	    -e s/mips.*/mips/\
+	    -e s/macppc/powerpc/\
+	    -e s/sh.*/sh/),cpp,\
+	$(if $(BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_R600),r600)
 
 HOST_LLVM_CONF_OPTS = \
 	--with-default-sysroot=$(STAGING_DIR) \
