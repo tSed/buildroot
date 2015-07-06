@@ -1,2 +1,2 @@
-# SHA256 hash computed locally.
-sha256	be0e69378119fe26f0f2f74cffe82b7c26da840c9733fe522ed3c1b66b11082d	cfe-3.6.0.src.tar.xz
+# Locally computed after signature verification:
+sha256 74f92d0c93b86678b015e87655f59474b2f657769680efdeb3c0524ffbd2dad7 cfe-3.6.1.src.tar.xz
