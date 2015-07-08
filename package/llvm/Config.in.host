@@ -12,7 +12,7 @@ config BR2_PACKAGE_HOST_LLVM_ARCH_SUPPORTS
 config BR2_PACKAGE_HOST_LLVM
 	bool "host llvm"
 	depends on BR2_PACKAGE_HOST_LLVM_ARCH_SUPPORTS
-	depends on BR2_BINUTILS_VERSION >= 2.24
+#	depends on BR2_BINUTILS_VERSION >= 2.24
 	help
 	  The LLVM Project is a collection of modular and reusable compiler
 	  and toolchain technologies.
