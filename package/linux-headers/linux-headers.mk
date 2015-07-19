@@ -123,6 +123,7 @@ define LINUX_HEADERS_INSTALL_STAGING_CMDS
 			HOSTCXX="$(HOSTCXX)" \
 			INSTALL_HDR_PATH=$(STAGING_DIR)/usr \
 			headers_install)
+	find $(STAGING_DIR)/usr \( -name .install -o -name ..install.cmd \) -delete
 endef
 
 ifeq ($(BR2_KERNEL_HEADERS_VERSION)$(BR2_KERNEL_HEADERS_AS_KERNEL),y)
