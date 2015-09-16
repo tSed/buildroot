@@ -1,0 +1,94 @@
+Relocatable SDK
+===============
+
+TODO list
+---------
+
+* Make sure that all binaries and libraries built for the host are built with a
+  rpath pointing to <host>/usr/lib:<host>/lib. Normally, this should already be
+  the case, but it's worth checking.
+  [DONE]
+
+* Change the rpath value to $ORIGIN/[...]/lib instead of the current absolute path
+  $(O)/host/usr/lib. (need to localy compute the relative path to <host>/)
+  [DONE]
+
+* Modify the compiler wrapper program of external toolchains so that instead of
+  using a fixed location for the compiler tools, it deduces their location in a
+  relative manner from its current location.
+  [DONE]
+
+* Modify/patch pkg-config so that instead of having a fixed location for the
+  PKG_CONFIG_PATH and PKG_CONFIG_SYSROOT_DIR, those are deduced from the
+  location of the pkg-config binary. This will allow a pkg-config binary that
+  has been moved to still operate properly, without having to set any
+  environment variable.
+  [DONE]
+
+* Modify the _CONFIG_SCRIPTS tweak to mungle all config scripts.
+  Also declare all config scripts that any packages install.
+  [DONE]
+
+* Write a shell script, installed in host/usr/bin, which would mungle the
+  libtool .la files, the qmake.conf file and the CMake toolchain file to set the
+  correct path. This script reads a file
+  (can be host/usr/share/buildroot/location) which contains the original
+  location of the SDK. This allows the script to do the right modifications on
+  all the libtool, qmake.conf and cmake files. Once this is done, the script
+  changes the host/usr/share/buildroot/location file so that it contains the new
+  location.
+
+* Modify the external toolchain wrapper so that it bails out and warns the user
+  if the directory it is executed in doesn't match the location of
+  host/usr/share/buildroot/location. We haven't discussed how this could work
+  with internal and crosstool-NG toolchains, though.
+
+* Sanitize RPATH in the target (and staging?) area, so that: no RPATH other than
+  existing relative ones (i.e. if a package set a rpath relative to some binany:
+  keep it, if it points to the staging or build location, remove it).
+  [DONE]
+
+* Add script to scan for host system path leaks into the target/host/staging
+  trees.
+  [DONE]
+
+References
+----------
+
+* http://lists.busybox.net/pipermail/buildroot/2012-February/050371.html
+
+
+Future works
+============
+
+Relocatability fixes
+--------------------
+
+* Try adding cflags: -fdebug-prefix-map=$(BASE_DIR)=BR2_BASE_DIR
+
+* Autotools post-hook: sed -re 's:$(BASE_DIR):BR2_BASE_DIR:g' $(find $(@D) -name config.h)
+
+* Analyse check-host-leak outputs, and fix them
+
+
+Misc.
+-----
+
+* Integrate Yann's branch: d62d6f6 - (HEAD -> yemorin/yem/hooks)
+  This includes:
+  - rm symlinks on *.so              => OK           : TODO
+  - bail out if no soname            => !!! plugins? : TOFIX
+  - rename *.so with their soname    => OK           : TODO
+  - replace duplicates w/ hard-links => [OK]         : TODO
+  - replace symlinks w/ hard-links   => [OK]         : TODO
+
+* Gather all host dependency checks in a shell module
+
+* Reduce disparity between external and Buildroot-built toolchain:
+  - Move all toolchain tests in a shell module
+  - Add all missing options for external toolchains
+  - Add a script to guess a toolchain defconfig
+  - update all toolchain config (in Config.in)
+  - update a.b.o toolchains configs
+
+* Improve unit tests in shell modules
