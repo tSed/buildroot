@@ -213,6 +213,18 @@ $(BUILD_DIR)/%/.stamp_host_installed:
 	$(foreach hook,$($(PKG)_PRE_INSTALL_HOOKS),$(call $(hook))$(sep))
 	+$($(PKG)_INSTALL_CMDS)
 	$(foreach hook,$($(PKG)_POST_INSTALL_HOOKS),$(call $(hook))$(sep))
+	$(Q)if test -n "$($(RAWNAME)_CONFIG_SCRIPTS)" ; then \
+		$(call MESSAGE,"Fixing package configuration files") ;\
+			ls $(HOST_DIR)/usr/bin/*-config 2>/dev/null |\
+			xargs --no-run-if-empty \
+			$(SED)  "s,$(BASE_DIR),@BASE_DIR@,g" \
+				-e "s,$(HOST_DIR),@HOST_DIR@,g" \
+				-e "s,^\(exec_\)\?prefix=.*,\1prefix=\`dirname \$$0\`/../../usr,g" \
+				-e "s,-I/usr/,-I@HOST_DIR@/usr/,g" \
+				-e "s,-L/usr/,-L@HOST_DIR@/usr/,g" \
+				-e "s,@HOST_DIR@,$(HOST_DIR),g" \
+				-e "s,@BASE_DIR@,$(BASE_DIR),g" ;\
+	fi
 	@$(call step_end,install-host)
 	$(Q)touch $@
 
