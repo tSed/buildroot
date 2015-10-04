@@ -311,6 +311,21 @@ check_cplusplus = \
 	fi
 
 #
+#
+# Check that the external toolchain supports Fortran
+#
+# $1: cross-gfortran path
+#
+check_fortran = \
+	__CROSS_FC=$(strip $1) ; \
+	printf 'program hello\n\tprint *, "Hello Fortran!\\n"\nend program hello\n' | \
+		$${__CROSS_FC} -x f95 -o /dev/null - ; \
+	if test $$? -ne 0 ; then \
+		echo "Fortran support is selected but is not available in external toolchain" ; \
+		exit 1 ; \
+	fi
+
+#
 # Check that the cross-compiler given in the configuration exists
 #
 # $1: cross-gcc path
