@@ -121,6 +121,7 @@ config BR2_TOOLCHAIN_BUILDROOT_CXX
 config BR2_TOOLCHAIN_BUILDROOT_FORTRAN
 	bool "Enable Fortran support"
 	depends on BR2_USE_WCHAR # libquadmath
+	select BR2_TOOLCHAIN_HAS_FORTRAN
 	help
 	  Enable this option if you want your toolchain to support the
 	  Fortran language and you want Fortran libraries to be
