@@ -162,7 +162,7 @@ HOST_GCC_FINAL_USR_LIBS += libstdc++
 endif
 
 ifeq ($(BR2_TOOLCHAIN_BUILDROOT_FORTRAN),y)
-HOST_GCC_FINAL_USR_LIBS += libgfortran
+HOST_GCC_FINAL_USR_LIBS += libgfortran libquadmath
 endif
 
 ifeq ($(BR2_GCC_ENABLE_OPENMP),y)

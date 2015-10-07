@@ -109,6 +109,11 @@ endif
 # gcc 4.6.x quadmath requires wchar
 ifneq ($(BR2_USE_WCHAR),y)
 HOST_GCC_COMMON_CONF_OPTS += --disable-libquadmath
+else
+# fortran needs quadmath on x86 and x86_64
+ifeq ($(BR2_TOOLCHAIN_BUILDROOT_FORTRAN)$(BR2_I386)$(BR2_x86_64),yy)
+HOST_GCC_COMMON_CONF_OPTS += --enable-libquadmath
+endif
 endif
 
 # libsanitizer requires wordexp, not in default uClibc config. Also
