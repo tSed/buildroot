@@ -107,7 +107,7 @@ HOST_GCC_COMMON_CONF_OPTS += --disable-libitm
 endif
 
 # gcc 4.6.x quadmath requires wchar
-ifneq ($(BR2_TOOLCHAIN_BUILDROOT_WCHAR),y)
+ifneq ($(BR2_USE_WCHAR),y)
 HOST_GCC_COMMON_CONF_OPTS += --disable-libquadmath
 endif
 
