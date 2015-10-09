@@ -1050,6 +1050,14 @@ config BR2_TOOLCHAIN_EXTERNAL_FORTRAN
 comment "Fortran support needs a toolchain w/ wchar"
 	depends on !BR2_USE_WCHAR
 
+config BR2_TOOLCHAIN_EXTERNAL_LTO
+	bool "Toolchain has LTO support?"
+	select BR2_TOOLCHAIN_HAS_LTO
+	help
+	  Select this option if your external toolchain has LTO
+	  support. If you don't know, leave the default value,
+	  Buildroot will tell you if it's correct or not.
+
 config BR2_TOOLCHAIN_EXTRA_EXTERNAL_LIBS
 	string "Extra toolchain libraries to be copied to target"
 	help
