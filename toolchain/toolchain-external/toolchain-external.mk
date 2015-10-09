@@ -546,6 +546,10 @@ define TOOLCHAIN_EXTERNAL_CONFIGURE_CMDS
 		$(call check_openmp,\
 			"$(TOOLCHAIN_EXTERNAL_CC) $(TOOLCHAIN_EXTERNAL_CFLAGS)") ; \
 	fi ; \
+	if test "$(BR2_TOOLCHAIN_HAS_LTO)" = "y" ; then \
+		$(call check_lto,\
+			"$(TOOLCHAIN_EXTERNAL_CC) $(TOOLCHAIN_EXTERNAL_CFLAGS)") ; \
+	fi ; \
 	if test "$(BR2_TOOLCHAIN_EXTERNAL_UCLIBC)" = "y" ; then \
 		$(call check_uclibc,$${SYSROOT_DIR}) ; \
 	elif test "$(BR2_TOOLCHAIN_EXTERNAL_MUSL)" = "y" ; then \
