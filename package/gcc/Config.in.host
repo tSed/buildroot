@@ -140,6 +140,7 @@ config BR2_GCC_ENABLE_TLS
 
 config BR2_GCC_ENABLE_LTO
 	bool "Enable compiler link-time-optimization support"
+	select BR2_TOOLCHAIN_HAS_LTO
 	select BR2_BINUTILS_ENABLE_LTO
 	help
 	  This option enables link-time optimization (LTO) support in
