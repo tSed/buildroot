@@ -1072,6 +1072,14 @@ config BR2_TOOLCHAIN_EXTERNAL_LTO
 	  support. If you don't know, leave the default value,
 	  Buildroot will tell you if it's correct or not.
 
+config BR2_TOOLCHAIN_EXTERNAL_GRAPHITE
+	bool "Toolchain has Graphite support?"
+	select BR2_TOOLCHAIN_HAS_GRAPHITE
+	help
+	  Select this option if your external toolchain has
+	  Graphite support. If you don't know, leave the default
+	  value, Buildroot will tell you if it's correct or not.
+
 config BR2_TOOLCHAIN_EXTRA_EXTERNAL_LIBS
 	string "Extra toolchain libraries to be copied to target"
 	help
