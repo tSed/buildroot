@@ -172,6 +172,7 @@ config BR2_GCC_ENABLE_LIBMUDFLAP
 config BR2_GCC_ENABLE_GRAPHITE
 	bool "Enable graphite support"
 	depends on BR2_GCC_SUPPORTS_GRAPHITE
+	select BR2_TOOLCHAIN_HAS_GRAPHITE
 	help
 	  This option enables the graphite optimizations in the
 	  compiler.
