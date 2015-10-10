@@ -354,6 +354,20 @@ check_lto = \
 	fi
 
 #
+# Check that the external toolchain supports Graphite/ISL
+#
+# $1: cross-gcc path
+#
+check_graphite = \
+	__CROSS_CC=$(strip $1) ; \
+	printf '\#include <stdio.h>\nint main(void) { printf("Hello Graphite/ISL!\\n"); }\n' | \
+		$${__CROSS_CC} -floop-unroll-and-jam -x c -o /dev/null - ; \
+	if test $$? -ne 0 ; then \
+		echo "Graphite/ISL support is selected but is not available in external toolchain" ; \
+		exit 1 ; \
+	fi
+
+#
 # Check that the cross-compiler given in the configuration exists
 #
 # $1: cross-gcc path
