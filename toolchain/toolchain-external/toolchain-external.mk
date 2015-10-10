@@ -550,6 +550,10 @@ define TOOLCHAIN_EXTERNAL_CONFIGURE_CMDS
 		$(call check_lto,\
 			"$(TOOLCHAIN_EXTERNAL_CC) $(TOOLCHAIN_EXTERNAL_CFLAGS)") ; \
 	fi ; \
+	if test "$(BR2_TOOLCHAIN_HAS_GRAPHITE)" = "y" ; then \
+		$(call check_graphite,\
+			"$(TOOLCHAIN_EXTERNAL_CC) $(TOOLCHAIN_EXTERNAL_CFLAGS)") ; \
+	fi ; \
 	if test "$(BR2_TOOLCHAIN_EXTERNAL_UCLIBC)" = "y" ; then \
 		$(call check_uclibc,$${SYSROOT_DIR}) ; \
 	elif test "$(BR2_TOOLCHAIN_EXTERNAL_MUSL)" = "y" ; then \
