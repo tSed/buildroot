@@ -1,0 +1,78 @@
+comment "lapack/blas support needs a toolchain w/ fortran or an (e)glibc toolchain"
+	depends on !BR2_TOOLCHAIN_HAS_FORTRAN && !BR2_TOOLCHAIN_USES_GLIBC && \
+		BR2_powerpc
+
+config BR2_PACKAGE_LAPACK
+	bool "lapack/blas support"
+	depends on BR2_TOOLCHAIN_HAS_FORTRAN || \
+		((!BR2_powerpc || BR2_TOOLCHAIN_USES_GLIBC) && \
+		 !BR2_mips && !BR2_mipsel && !BR2_mips64 && !BR2_mips64el && \
+		 !BR2_bfin)
+	help
+	  Select the desired lapack/blas library provider.
+
+if BR2_PACKAGE_LAPACK
+
+choice
+	prompt "lapack/blas variant"
+	default BR2_PACKAGE_LAPACK_REFERENCE if BR2_TOOLCHAIN_HAS_FORTRAN
+	default BR2_PACKAGE_CLAPACK
+	help
+	  Select the older stable version, or the newer developer version
+
+comment "blas/lapack-reference needs a toolchain w/ fortran"
+	depends on !BR2_TOOLCHAIN_HAS_FORTRAN
+
+config BR2_PACKAGE_LAPACK_REFERENCE
+	bool "blas/lapack-reference"
+	depends on BR2_TOOLCHAIN_HAS_FORTRAN
+	select BR2_PACKAGE_HAS_LAPACK
+	help
+	  The latest fortran reference implementation for BLAS and Lapack
+	  libraries.
+
+	  http://www.netlib.org/lapack/
+	  http://www.netlib.org/blas/
+
+comment "clapack needs an (e)glibc toolchain"
+	depends on BR2_powerpc && !BR2_TOOLCHAIN_USES_GLIBC
+
+config BR2_PACKAGE_CLAPACK
+	bool "cblas/clapack"
+	depends on !BR2_mips && !BR2_mipsel && !BR2_mips64 && !BR2_mips64el
+	# disable clapack on blackfin, it triggers "undefined symbol" failure
+	# because of the "_" symbol prefix:
+	# http://autobuild.buildroot.net/results/a28df0ba10803e6e54c2f8160bbd8190cba4d690/
+	depends on !BR2_bfin
+	# _fpu_control is used on PowerPC, but not available with
+	# uClibc or musl
+	depends on !BR2_powerpc || BR2_TOOLCHAIN_USES_GLIBC
+	select BR2_PACKAGE_HAS_LAPACK
+	help
+	  BLAS and LAPACK C implementation (f2c-ed version of).
+
+	  http://www.netlib.org/clapack/
+
+endchoice
+
+config BR2_PACKAGE_CLAPACK_ARITH_H
+	string "custom BLAS arith.h"
+	depends on BR2_PACKAGE_CLAPACK
+	help
+	  To optimize cblas library for the hardware, an 'arith.h' header should
+	  be provided.
+
+	  If empty, the library will not be optimized by the compiler.
+
+	  In any case an 'arithchk' program is built (but not installed), to be run
+	  on the target to generate this arith.h header.
+
+config BR2_PACKAGE_HAS_LAPACK
+	bool
+
+config BR2_PACKAGE_PROVIDES_LAPACK
+	string
+	default "lapack-reference" if BR2_PACKAGE_LAPACK_REFERENCE
+	default "clapack"          if BR2_PACKAGE_CLAPACK
+
+endif
