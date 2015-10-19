@@ -1,0 +1,34 @@
+From 21c2389ad433c363eca15f7ed265b4d78f460384 Mon Sep 17 00:00:00 2001
+From: Samuel Martin <s.martin49@gmail.com>
+Date: Mon, 19 Oct 2015 20:43:23 +0200
+Subject: [PATCH] cmake: fix version variables
+
+Upstream already fixing in another (more complex and conflicting) way
+the version number variables in the CMake code.
+
+Signed-off-by: Samuel Martin <s.martin49@gmail.com>
+---
+ CMakeLists.txt | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 56ecd2e..25323ac 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -217,10 +217,10 @@ endif(LAPACKE)
+ SET(CPACK_PACKAGE_NAME "LAPACK")
+ SET(CPACK_PACKAGE_VENDOR "University of Tennessee, Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd")
+ SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "LAPACK- Linear Algebra Package")
+-set(LAPACK_VERSION 3.4.2)
++set(LAPACK_VERSION 3.5.0)
+ set(CPACK_PACKAGE_VERSION_MAJOR 3)
+-set(CPACK_PACKAGE_VERSION_MINOR 4)
+-set(CPACK_PACKAGE_VERSION_PATCH 2)
++set(CPACK_PACKAGE_VERSION_MINOR 5)
++set(CPACK_PACKAGE_VERSION_PATCH 0)
+ set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
+ SET(CPACK_PACKAGE_INSTALL_DIRECTORY "LAPACK")
+ IF(WIN32 AND NOT UNIX)
+-- 
+2.6.1
+

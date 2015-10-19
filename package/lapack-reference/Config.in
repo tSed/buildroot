@@ -1,0 +1,12 @@
+comment "blas/lapack-reference needs a toolchain w/ fortan"
+	depends on !BR2_TOOLCHAIN_HAS_FORTRAN
+
+config BR2_PACKAGE_CLAPACK
+	bool "blas/lapack-reference"
+	depends on BR2_TOOLCHAIN_HAS_FORTRAN
+	help
+	  BLAS and LAPACK reference implementation, including the lapacke -
+	  C interface.
+
+	  http://www.netlib.org/lapack/
+	  http://www.netlib.org/blas/
