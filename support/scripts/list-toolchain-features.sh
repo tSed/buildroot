@@ -48,6 +48,31 @@
 ## - check for libmudflap? (removed from gcc since 4.9, see:
 ##     https://gcc.gnu.org/wiki/Mudflap_Pointer_Debugging )
 
+usage() {
+  printf "
+usage: ${0##*/} [OPTIONS] -- CROSS_COMPILE [TARGET_CFLAGS...]
+
+description:
+\tTest the given cross-compiler for features optons supported in Buildroot, and
+\tgenerate the requested output.
+
+options:
+\t-f,--format FORMAT
+\t\tGenerate output in the given format.
+\t\tAllowed formats are: .config, Config.in (default: .config).
+\t\t- .config format generates the .config fragment with all enabled and
+\t\t  disabled symbols.
+\t\t  This is not the defconfig fragment; to get it you need to:
+\t\t  1. generate the .config fragment;
+\t\t  2. inject this .config fragment in a new build config;
+\t\t  3. run 'make savedefconfig' to generate the corresponding defconfig.
+\t\t- Config.in format generates a stub of config entry with its selection.
+
+\t-c,--custom
+\t\tGenerate entry for custom external toolchain instead of for supported
+\t\ttoolchain.\n\n"
+}
+
 #
 # Utilities
 #
@@ -63,90 +88,114 @@ warning() {
 
 error() {
   local ret=$?
-  log "\nerror: $@\n"
+  log "\nerror:  $@\n"
   return ${ret}
 }
 
 # $n: message
 die() {
   error "${@}"
+  usage >&2
   exit 1
 }
+
+declare -a REMAINS_ARGS
+declare CUSTOM_TOOLCHAIN
+declare FORMAT=.config
+
+while test ${#} -gt 0 ; do
+  case "${1}" in
+    -h|--help)
+      usage
+      exit
+      ;;
+    -c|--custom*)
+      CUSTOM_TOOLCHAIN=1
+      ;;
+    -f|--format)
+      shift
+      FORMAT="${1}"
+      ;;
+    --)
+      shift
+      REMAINS_ARGS+=( ${@} )
+      break
+      ;;
+    *)
+      REMAINS_ARGS+=( "${1}" )
+      ;;
+  esac
+  shift
+done
+case "${FORMAT}" in
+  .config|Config.in) ;;
+  *) die "Unsupported output type: '${FORMAT}'\n\
+\tSupported output type: .config, Config.in"
+   ;;
+esac
+set -- ${REMAINS_ARGS[@]}
+unset REMAINS_ARGS
 
 #
 # Formating stuff
 #
-BR_PREFIX="BR2_"
-TC_PREFIX="TOOLCHAIN_EXTERNAL"
-
-declare -A EXT_TC_PRESET
-EXT_TC_PRESET=(\
-  ["custom"]="" \
-  ["prefix"]="" \
-  ["download"]="" \
-  ["url"]="" \
-  ["gcc"]="BR2_TOOLCHAIN_GCC_AT_LEAST_" \
-  ["headers"]="BR2_TOOLCHAIN_HEADERS_AT_LEAST_" \
-  ["uclibc"]="BR2_TOOLCHAIN_USES_UCLIBC" \
-  ["glibc"]="BR2_TOOLCHAIN_EXTERNAL_GLIBC" \
-  ["musl"]="BR2_TOOLCHAIN_EXTERNAL_MUSL" \
-  ["wchar"]="BR2_USE_WCHAR" \
-  ["rpc"]="BR2_TOOLCHAIN_HAS_NATIVE_RPC" \
-  ["locale"]="BR2_ENABLE_LOCALE" \
-  ["threads"]="BR2_TOOLCHAIN_HAS_THREADS" \
-  ["threads_debug"]="BR2_TOOLCHAIN_HAS_THREADS_DEBUG" \
-  ["threads_nptl"]="BR2_TOOLCHAIN_HAS_THREADS_NPTL" \
-  ["ssp"]="BR2_TOOLCHAIN_HAS_SSP" \
-  ["cxx"]="BR2_INSTALL_LIBSTDCPP" \
-  ["fortran"]="BR2_TOOLCHAIN_HAS_FORTRAN" \
-  ["openmp"]="BR2_TOOLCHAIN_HAS_OPENMP" \
-  ["lto"]="BR2_TOOLCHAIN_HAS_LTO" \
-  ["graphite"]="BR2_TOOLCHAIN_HAS_GRAPHITE" \
-  )
-
-declare -A EXT_TC_CUSTOM
-EXT_TC_CUSTOM=(\
-  ["custom"]="BR2_TOOLCHAIN_EXTERNAL_CUSTOM" \
-  ["prefix"]="BR2_TOOLCHAIN_EXTERNAL_CUSTOM_PREFIX" \
-  ["download"]="BR2_TOOLCHAIN_EXTERNAL_DOWNLOAD" \
-  ["url"]="BR2_TOOLCHAIN_EXTERNAL_URL" \
-  ["gcc"]="BR2_TOOLCHAIN_EXTERNAL_GCC_" \
-  ["headers"]="BR2_TOOLCHAIN_EXTERNAL_HEADERS_" \
-  ["uclibc"]="" \
-  ["glibc"]="BR2_TOOLCHAIN_EXTERNAL_CUSTOM_GLIBC" \
-  ["musl"]="BR2_TOOLCHAIN_EXTERNAL_CUSTOM_MUSL" \
-  ["wchar"]="BR2_TOOLCHAIN_EXTERNAL_WCHAR" \
-  ["rpc"]="BR2_TOOLCHAIN_EXTERNAL_INET_RPC" \
-  ["locale"]="BR2_TOOLCHAIN_EXTERNAL_LOCALE" \
-  ["threads"]="BR2_TOOLCHAIN_EXTERNAL_HAS_THREADS" \
-  ["threads_debug"]="BR2_TOOLCHAIN_EXTERNAL_HAS_THREADS_DEBUG" \
-  ["threads_nptl"]="BR2_TOOLCHAIN_EXTERNAL_HAS_THREADS_NPTL" \
-  ["ssp"]="BR2_TOOLCHAIN_EXTERNAL_HAS_SSP" \
-  ["cxx"]="BR2_TOOLCHAIN_EXTERNAL_CXX" \
-  ["fortran"]="BR2_TOOLCHAIN_EXTERNAL_FORTRAN" \
-  ["openmp"]="BR2_TOOLCHAIN_EXTERNAL_OPENMP" \
-  ["lto"]="BR2_TOOLCHAIN_EXTERNAL_LTO" \
-  ["graphite"]="BR2_TOOLCHAIN_EXTERNAL_GRAPHITE" \
-  )
-
 declare -A SYMBOLS
-if echo ${@} | grep -q -- '--custom' ; then
-  SYMBOLS=${EXT_TC_CUSTOM[@]}
+if test -n "${CUSTOM_TOOLCHAIN}" ; then
+  SYMBOLS=(\
+    ["custom"]="BR2_TOOLCHAIN_EXTERNAL_CUSTOM" \
+    ["prefix"]="BR2_TOOLCHAIN_EXTERNAL_CUSTOM_PREFIX" \
+    ["download"]="BR2_TOOLCHAIN_EXTERNAL_DOWNLOAD" \
+    ["url"]="BR2_TOOLCHAIN_EXTERNAL_URL" \
+    ["gcc"]="BR2_TOOLCHAIN_EXTERNAL_GCC_" \
+    ["headers"]="BR2_TOOLCHAIN_EXTERNAL_HEADERS_" \
+    ["uclibc"]="BR2_TOOLCHAIN_EXTERNAL_CUSTOM_UCLIBC" \
+    ["glibc"]="BR2_TOOLCHAIN_EXTERNAL_CUSTOM_GLIBC" \
+    ["musl"]="BR2_TOOLCHAIN_EXTERNAL_CUSTOM_MUSL" \
+    ["wchar"]="BR2_TOOLCHAIN_EXTERNAL_WCHAR" \
+    ["rpc"]="BR2_TOOLCHAIN_EXTERNAL_INET_RPC" \
+    ["locale"]="BR2_TOOLCHAIN_EXTERNAL_LOCALE" \
+    ["threads"]="BR2_TOOLCHAIN_EXTERNAL_HAS_THREADS" \
+    ["threads_debug"]="BR2_TOOLCHAIN_EXTERNAL_HAS_THREADS_DEBUG" \
+    ["threads_nptl"]="BR2_TOOLCHAIN_EXTERNAL_HAS_THREADS_NPTL" \
+    ["ssp"]="BR2_TOOLCHAIN_EXTERNAL_HAS_SSP" \
+    ["cxx"]="BR2_TOOLCHAIN_EXTERNAL_CXX" \
+    ["fortran"]="BR2_TOOLCHAIN_EXTERNAL_FORTRAN" \
+    ["openmp"]="BR2_TOOLCHAIN_EXTERNAL_OPENMP" \
+    ["lto"]="BR2_TOOLCHAIN_EXTERNAL_LTO" \
+    ["graphite"]="BR2_TOOLCHAIN_EXTERNAL_GRAPHITE" \
+  )
 else
-  SYMBOLS=${EXT_TC_PRESET[@]}
+  SYMBOLS=(\
+    ["custom"]="" \
+    ["prefix"]="" \
+    ["download"]="" \
+    ["url"]="" \
+    ["gcc"]="BR2_TOOLCHAIN_GCC_AT_LEAST_" \
+    ["headers"]="BR2_TOOLCHAIN_HEADERS_AT_LEAST_" \
+    ["uclibc"]="BR2_TOOLCHAIN_USES_UCLIBC" \
+    ["glibc"]="BR2_TOOLCHAIN_EXTERNAL_GLIBC" \
+    ["musl"]="BR2_TOOLCHAIN_EXTERNAL_MUSL" \
+    ["wchar"]="BR2_USE_WCHAR" \
+    ["rpc"]="BR2_TOOLCHAIN_HAS_NATIVE_RPC" \
+    ["locale"]="BR2_ENABLE_LOCALE" \
+    ["threads"]="BR2_TOOLCHAIN_HAS_THREADS" \
+    ["threads_debug"]="BR2_TOOLCHAIN_HAS_THREADS_DEBUG" \
+    ["threads_nptl"]="BR2_TOOLCHAIN_HAS_THREADS_NPTL" \
+    ["ssp"]="BR2_TOOLCHAIN_HAS_SSP" \
+    ["cxx"]="BR2_INSTALL_LIBSTDCPP" \
+    ["fortran"]="BR2_TOOLCHAIN_HAS_FORTRAN" \
+    ["openmp"]="BR2_TOOLCHAIN_HAS_OPENMP" \
+    ["lto"]="BR2_TOOLCHAIN_HAS_LTO" \
+    ["graphite"]="BR2_TOOLCHAIN_HAS_GRAPHITE" \
+  )
 fi
 
-format_entry() {
-  local prop_name=${1} prop_val="${2}"
-  if test -z "${prop_name}" ; then
-    return
-  fi
-  local symbol=${SYMBOLS[${prop_name}]}
-  if test -z "${symbol}" ; then
-    return
-  fi
 
-  #printf >&2 "symbol=${symbol} \tval='${prop_val}'\n"
+# $1: symbol name
+# $2: symbol value
+format_dot_config() {
+  local symbol="${1}" prop_val="${2}"
+
   if test -z "${prop_val}" ; then
     printf "# ${symbol} is not set\n"
   else
@@ -158,10 +207,42 @@ format_entry() {
   fi
 }
 
-# $1: property name
-# $2: property value
-format_toolchain_property() {
-  format_entry "${prop_name}" "${prop_val}"
+# $1: symbol name
+# $2: symbol value
+format_config_in() {
+  local symbol="${1}" prop_val="${2}"
+
+  if test -z "${prop_val}" ; then
+    return
+  else
+    case "${prop_val}" in
+      y)     printf "\tselect ${symbol}\n" ;;
+      \"*\") return ;;
+      *)     printf "\tselect ${symbol}${prop_val}\n" ;;
+    esac
+  fi
+}
+
+# $1: symbol name
+# $2: symbol value
+format_entry() {
+  local symbol=${SYMBOLS[${1}]}
+  shift
+  if test -z "${symbol}" ; then
+    return
+  fi
+
+  case "${FORMAT}" in
+    .config)
+      format_dot_config "${symbol}" $@
+      ;;
+    Config.in)
+      format_config_in  "${symbol}" $@
+      ;;
+    *)
+      die "Unsupported output: '${FORMAT}'"
+      ;;
+  esac
 }
 
 #
@@ -344,9 +425,10 @@ VENDOR=${TUPLE[1]//\"/}
 OS=${TUPLE[2]//\"/}
 LIBC=${TUPLE[3]//\"/}
 ABI=${TUPLE[4]//\"/}
-log "CROSS_COMPILE=${CROSS_COMPILE}\n"
-log "Target tuple: arch='${ARCH}' \tvendor='${VENDOR}' \tos='${OS}' \tlibc='${LIBC}' \tabi='${ABI}'\n"
 
+log "Toolchain info:\n"
+log "  CROSS_COMPILE=${CROSS_COMPILE}\n"
+log "  Target tuple:\n\tarch='${ARCH}'\n\tvendor='${VENDOR}'\n\tos='${OS}'\n\tlibc='${LIBC}'\n\tabi='${ABI}'\n\n"
 # Sanity checks
 test ! -z "${ARCH}" || die "Cannot get ARCH from '${TARGET_TUPLE}'"
 test ! -z "${LIBC}" || die "Cannot get LIBC from '${TARGET_TUPLE}'"
@@ -363,56 +445,93 @@ test_has_IPV6 ${TARGET_CC} ${TARGET_CFLAGS} || warning "Missing required support
 
 # Target architecture properties
 
-# may need to hanlde more cases (big/little endian, armvX, etc)
-case "${ARCH}" in
-  arm*)
-    format_entry arm y
-    format_entry $(echo "ARM_${ABI}" | tr '[:lower:]' '[:upper:]') y
-    #target cpu: TODO (e.g.: BR2_cortex-a15=y)
-    #target fpu: TODO (e.g.: BR2_ARM_ENABLE_NEON=y, BR2_ARM_FPU_VFPV2=y)
-    ;;
-  i.86)
-    format_entry i386 y
-    ;;
-  *)
-    format_entry ${ARCH} y
-    ;;
-esac
-format_entry USE_MMU $(test_has_MMU ${TARGET_CC} ${TARGET_CFLAGS} && echo y)
+if test "${FORMAT}" = ".config" ; then
+  # may need to hanlde more cases (big/little endian, armvX, etc)
+  case "${ARCH}" in
+    arm*)
+      format_dot_config BR2_arm y
+      format_dot_config BR2_$(echo "ARM_${ABI}" | tr '[:lower:]' '[:upper:]') y
+      #target cpu: TODO (e.g.: BR2_cortex-a15=y)
+      #target fpu: TODO (e.g.: BR2_ARM_ENABLE_NEON=y, BR2_ARM_FPU_VFPV2=y)
+      ;;
+    i.86)
+      format_dot_config BR2_i386 y
+      ;;
+    *)
+      format_dot_config BR2_${ARCH} y
+      ;;
+  esac
+  format_dot_config BR2_USE_MMU $(test_has_MMU ${TARGET_CC} ${TARGET_CFLAGS} && echo y)
+fi
+
 
 # Toolchain properties
 
-format_entry ${TC_PREFIX} y
-format_toolchain_property CUSTOM y
-format_toolchain_property DOWNLOAD y
-format_toolchain_property URL '"<FIXME>"'
+if test "${FORMAT}" = ".config" ; then
+  format_dot_config "BR2_TOOLCHAIN_EXTERNAL" y
+elif test "${FORMAT}" = "Config.in" ; then
+  printf "config BR2_TOOLCHAIN_EXTERNAL_<FIXME>\n"
+  printf "\tbool \"<FIXME>\"\n"
+  case "${ARCH}" in
+    arm*)
+      printf "\tdepends on BR2_arm\n"
+      printf "\tdepends on BR2_$(echo "ARM_${ABI}" | tr '[:lower:]' '[:upper:]')\n"
+      #target cpu: TODO (e.g.: BR2_cortex-a15=y)
+      #target fpu: TODO (e.g.: BR2_ARM_ENABLE_NEON=y, BR2_ARM_FPU_VFPV2=y)
+      ;;
+    i.86)
+      printf "\tdepends on BR2_i386\n"
+      ;;
+    *)
+      printf "\tdepends on BR2_${ARCH}\n"
+      ;;
+  esac
+fi
 
-format_toolchain_property GCC_$(get_gcc_version ${TARGET_CC}) y
-format_toolchain_property HEADERS_$(get_kernel_headers_version ${SYSROOT}) y
+format_entry custom   y
+format_entry download y
+format_entry url      '"FIXME"'
+format_entry gcc      $(get_gcc_version ${TARGET_CC})
+format_entry headers  $(get_kernel_headers_version ${SYSROOT})
 
 case "${LIBC}" in
-  uclibc) ;;
-  glibc) format_toolchain_property CUSTOM_GLIBC y ;;
-  musl)  format_toolchain_property CUSTOM_MUSL y ;;
+  uclibc)
+    format_entry uclibc  y
+    format_entry wchar   $(test_has_WCHAR ${TARGET_CC} ${TARGET_CFLAGS} && echo y)
+    format_entry rpc     $(test_has_RPC ${SYSROOT} && echo y)
+    format_entry locale  $(test_libc_feature ${LIBC} ${SYSROOT} __UCLIBC_HAS_LOCALE__ && echo y)
+    format_entry threads $(test_libc_feature ${LIBC} ${SYSROOT} __UCLIBC_HAS_THREADS__ && echo y)
+    format_entry threads_debug $(test_libc_feature ${LIBC} ${SYSROOT} __PTHREADS_DEBUG_SUPPORT__ && echo y)
+    format_entry threads_nptl  $(test_libc_feature ${LIBC} ${SYSROOT} __UCLIBC_HAS_THREADS_NATIVE__ && echo y)
+    format_entry ssp     $(test_libc_feature ${LIBC} ${SYSROOT} __UCLIBC_HAS_SSP__ && echo y)
+    ;;
+  glibc)
+    format_entry glibc   y
+    #format_entry wchar   $(test_has_WCHAR ${TARGET_CC} ${TARGET_CFLAGS} && echo y)
+    format_entry rpc     $(test_has_RPC ${SYSROOT} && echo y)
+    #format_entry locale  $(test_libc_feature ${LIBC} ${SYSROOT} __UCLIBC_HAS_LOCALE__ && echo y)
+    #format_entry threads $(test_libc_feature ${LIBC} ${SYSROOT} __UCLIBC_HAS_THREADS__ && echo y)
+    #format_entry threads_debug $(test_libc_feature ${LIBC} ${SYSROOT} __PTHREADS_DEBUG_SUPPORT__ && echo y)
+    #format_entry threads_nptl  $(test_libc_feature ${LIBC} ${SYSROOT} __UCLIBC_HAS_THREADS_NATIVE__ && echo y)
+    #format_entry ssp     $(test_libc_feature ${LIBC} ${SYSROOT} __UCLIBC_HAS_SSP__ && echo y)
+    ;;
+  musl)
+    format_entry musl    y
+    #format_entry wchar   $(test_has_WCHAR ${TARGET_CC} ${TARGET_CFLAGS} && echo y)
+    format_entry rpc     $(test_has_RPC ${SYSROOT} && echo y)
+    #format_entry locale  $(test_libc_feature ${LIBC} ${SYSROOT} __UCLIBC_HAS_LOCALE__ && echo y)
+    #format_entry threads $(test_libc_feature ${LIBC} ${SYSROOT} __UCLIBC_HAS_THREADS__ && echo y)
+    #format_entry threads_debug $(test_libc_feature ${LIBC} ${SYSROOT} __PTHREADS_DEBUG_SUPPORT__ && echo y)
+    #format_entry threads_nptl  $(test_libc_feature ${LIBC} ${SYSROOT} __UCLIBC_HAS_THREADS_NATIVE__ && echo y)
+    #format_entry ssp     $(test_libc_feature ${LIBC} ${SYSROOT} __UCLIBC_HAS_SSP__ && echo y)
+    ;;
 esac
 
-format_toolchain_property WCHAR $(test_has_WCHAR ${TARGET_CC} ${TARGET_CFLAGS} && echo y)
-format_toolchain_property INET_RPC $(test_has_RPC ${SYSROOT} && echo y)
-format_toolchain_property LOCALE \
-  $(test_libc_feature ${LIBC} ${SYSROOT} __UCLIBC_HAS_LOCALE__ && echo y)
-format_toolchain_property HAS_THREADS \
-  $(test_libc_feature ${LIBC} ${SYSROOT} __UCLIBC_HAS_THREADS__ && echo y)
-format_toolchain_property HAS_THREADS_DEBUG \
-  $(test_libc_feature ${LIBC} ${SYSROOT} __PTHREADS_DEBUG_SUPPORT__ && echo y)
-format_toolchain_property HAS_THREADS_NPTL \
-  $(test_libc_feature ${LIBC} ${SYSROOT} __UCLIBC_HAS_THREADS_NATIVE__ && echo y)
-format_toolchain_property HAS_SSP \
-  $(test_libc_feature ${LIBC} ${SYSROOT} __UCLIBC_HAS_SSP__ && echo y)
-format_toolchain_property CXX $(test_has_cplusplus ${TARGET_CXX} && echo y)
-format_toolchain_property FORTRAN $(test_has_fortran ${TARGET_FC} && echo y)
-format_toolchain_property OPENMP $(test_has_openmp ${TARGET_CC} ${TARGET_CFLAGS} && echo y)
-format_toolchain_property LTO $(test_has_lto ${TARGET_CC} ${TARGET_CFLAGS} && echo y)
-format_toolchain_property GRAPHITE $(test_has_graphite ${TARGET_CC} ${TARGET_CFLAGS} && echo y)
+format_entry cxx      $(test_has_cplusplus ${TARGET_CXX} && echo y)
+format_entry fortran  $(test_has_fortran ${TARGET_FC} && echo y)
+format_entry openmp   $(test_has_openmp ${TARGET_CC} ${TARGET_CFLAGS} && echo y)
+format_entry lto      $(test_has_lto ${TARGET_CC} ${TARGET_CFLAGS} && echo y)
+format_entry graphite $(test_has_graphite ${TARGET_CC} ${TARGET_CFLAGS} && echo y)
 
 ## #
 ## # Check that the cross-compiler given in the configuration exists
