@@ -29,18 +29,68 @@ SHELL := $(shell if [ -x "$$BASH" ]; then echo $$BASH; \
 	 else if [ -x /bin/bash ]; then echo /bin/bash; \
 	 else echo sh; fi; fi)
 
-# Trick for always running with a fixed umask
+# Set O variable if not already done on the command line;
+# or avoid confusing packages that can use the O=<dir> syntax for out-of-tree
+# build by preventing it from being forwarded to sub-make calls.
+ifneq ("$(origin O)", "command line")
+O := $(CURDIR)/output
+else
+# Other packages might also support Linux-style out of tree builds
+# with the O=<dir> syntax (E.G. BusyBox does). As make automatically
+# forwards command line variable definitions those packages get very
+# confused. Fix this by telling make to not do so, only for O=..., but
+# keep all others (such as BR2_EXTERNAL, BR2_DL_DIR, etc).
+MAKEOVERRIDES := $(filter-out O=%,$(MAKEOVERRIDES))
+# Strangely enough O is still passed to submakes with MAKEOVERRIDES
+# (with make 3.81 atleast), the only thing that changes is the output
+# of the origin function (command line -> environment).
+# Unfortunately some packages don't look at origin (E.G. uClibc 0.9.31+)
+# To really make O go away, we have to override it.
+override O := $(O)
+endif
+
+# Check if the current Buildroot execution meets all the pre-requisites.
+# If they are not met, Buildroot will actually do its job in a sub-make meeting
+# its pre-requisites, which are:
+#  1- Permissive enough umask:
+#       Wrong or too restrictive umask will prevent Buildroot and packages from
+#       creating files and directories.
+#  2- Absolute canonical CWD (i.e. $(CURDIR)):
+#       Otherwise, some packages will use CWD as-is, others will compute its
+#       absolute canonical path. This makes harder tracking and fixing host
+#       machine path leaks.
+#  3- Absolute canonical output location (i.e. $(O)):
+#       For the same reason as the one for CWD.
+
+# Current state:
+CUR_UMASK := $(shell umask)
+# Remove the trailing '/.' from $(O) as it can be added by the makefile wrapper
+# installed in the $(O) directory.
+O := $(patsubst %/.,%,$(O))
+
+# Buildroot requirements:
 UMASK = 0022
-ifneq ($(shell umask),$(UMASK))
+REAL_CURDIR := $(realpath $(CURDIR))
+# realpath needs the entry to exists, otherwise an empty string is returned.
+REAL_O := $(shell mkdir -p $(O) >/dev/null 2>&1)$(realpath $(O))
+
+# Make sure O= is passed (with its absolute canonical path) everywhere the
+# toplevel makefile is called back.
+EXTRAMAKEARGS := O=$(REAL_O)
+
+# Check Buildroot execution pre-requisites here.
+ifneq ($(CUR_UMASK):$(CURDIR):$(O),$(UMASK):$(REAL_CURDIR):$(REAL_O))
 .PHONY: _all $(MAKECMDGOALS)
 
 $(MAKECMDGOALS): _all
 	@:
 
 _all:
-	@umask $(UMASK) && $(MAKE) --no-print-directory $(MAKECMDGOALS)
+	@umask $(UMASK) && \
+		$(MAKE) -C $(REAL_CURDIR) --no-print-directory \
+			$(MAKECMDGOALS) $(EXTRAMAKEARGS)
 
-else # umask
+else # umask / $(CURDIR) / $(O)
 
 # This is our default rule, so must come first
 all:
@@ -115,30 +165,10 @@ comma := ,
 empty :=
 space := $(empty) $(empty)
 
-# Set O variable if not already done on the command line;
-# or avoid confusing packages that can use the O=<dir> syntax for out-of-tree
-# build by preventing it from being forwarded to sub-make calls.
-ifneq ("$(origin O)", "command line")
-O := output
-else
-# other packages might also support Linux-style out of tree builds
-# with the O=<dir> syntax (E.G. BusyBox does). As make automatically
-# forwards command line variable definitions those packages get very
-# confused. Fix this by telling make to not do so
-MAKEOVERRIDES =
-# strangely enough O is still passed to submakes with MAKEOVERRIDES
-# (with make 3.81 atleast), the only thing that changes is the output
-# of the origin function (command line -> environment).
-# Unfortunately some packages don't look at origin (E.G. uClibc 0.9.31+)
-# To really make O go away, we have to override it.
-override O := $(O)
-# we need to pass O= everywhere we call back into the toplevel makefile
-EXTRAMAKEARGS = O=$(O)
-endif
-
 # Set variables related to in-tree or out-of-tree build.
-ifeq ($(O),output)
-CONFIG_DIR := $(TOPDIR)
+# Here, both $(O) and $(CURDIR) are absolute canonical paths.
+ifeq ($(O),$(CURDIR)/output)
+CONFIG_DIR := $(CURDIR)
 NEED_WRAPPER =
 else
 CONFIG_DIR := $(O)
@@ -1012,4 +1042,4 @@ include docs/manual/manual.mk
 
 .PHONY: $(noconfig_targets)
 
-endif #umask
+endif #umask / $(CURDIR) / $(O)
