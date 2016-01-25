@@ -654,6 +654,24 @@ endef
 TARGET_FINALIZE_HOOKS += PURGE_LOCALES
 endif
 
+# Function sanitizing target/staging ELF files' RPATH.
+# i.e. it removes paths pointing to the staging or build location from the ELF
+# files' RPATH.
+define TARGET_SANITIZE_RPATH_HOOK
+	PATCHELF=$(HOST_DIR)/usr/bin/patchelf \
+	READELF=$(TARGET_READELF) \
+	$(TOPDIR)/support/scripts/fix-rpath target $(TARGET_DIR)
+endef
+
+define STAGING_SANITIZE_RPATH_HOOK
+	PATCHELF=$(HOST_DIR)/usr/bin/patchelf \
+	READELF=$(TARGET_READELF) \
+	$(TOPDIR)/support/scripts/fix-rpath staging $(STAGING_DIR)
+endef
+
+TARGET_FINALIZE_HOOKS += TARGET_SANITIZE_RPATH_HOOK \
+       STAGING_SANITIZE_RPATH_HOOK
+
 $(TARGETS_ROOTFS): target-finalize
 
 target-finalize: $(PACKAGES)
