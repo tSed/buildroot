@@ -654,6 +654,21 @@ endef
 TARGET_FINALIZE_HOOKS += PURGE_LOCALES
 endif
 
+# Checks for build machine leaks into target filesystem, SDK
+check-leaks-in-target:
+	@$(call MESSAGE,Checking leaks in the target)
+	$(Q)$(call check-for-build-machine-leaks-in,$(TARGET_DIR))
+
+check-leaks-in-host:
+	@$(call MESSAGE,Checking leaks in the host)
+	$(Q)$(call check-for-build-machine-leaks-in,$(HOST_DIR),--exclude=$(STAGING_DIR))
+
+check-leaks-in-staging:
+	@$(call MESSAGE,Checking leaks in the staging)
+	$(Q)$(call check-for-build-machine-leaks-in,$(STAGING_DIR))
+
+check-leaks:	check-leaks-in-target check-leaks-in-host check-leaks-in-staging
+
 # Function sanitizing target/staging ELF files' RPATH.
 # i.e. it removes paths pointing to the staging or build location from the ELF
 # files' RPATH.

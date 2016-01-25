@@ -187,3 +187,8 @@ define legal-license-file # pkg, filename, file-fullpath, {HOST|TARGET}
 	mkdir -p $(LICENSE_FILES_DIR_$(4))/$(1)/$(dir $(2)) && \
 	cp $(3) $(LICENSE_FILES_DIR_$(4))/$(1)/$(2)
 endef
+
+define check-for-build-machine-leaks-in
+	$(TOPDIR)/support/scripts/check-host-leaks $(1) \
+		$(TOPDIR) $(BASE_DIR) $(HOST_DIR) $(STAGING_DIR) $(2)
+endef
