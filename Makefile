@@ -526,7 +526,20 @@ $(BUILD_DIR)/buildroot-config/auto.conf: $(BR2_CONFIG)
 
 prepare: $(BUILD_DIR)/buildroot-config/auto.conf
 
+# RPATH fixing
+# - The host hook sets RPATH in host ELF binaries, using relative paths to the
+#   library locations.
+PACKAGES += host-patchelf
+
+define SANITIZE_RPATH_HOST
+	PATCHELF=$(HOST_DIR)/usr/bin/patchelf \
+	READELF=readelf \
+	$(TOPDIR)/support/scripts/fix-rpath host $(HOST_DIR)
+endef
+
 world: target-post-image
+	@$(call MESSAGE,"Rendering the SDK relocatable")
+	$(SANITIZE_RPATH_HOST)
 
 .PHONY: all world toolchain dirs clean distclean source outputmakefile \
 	legal-info legal-info-prepare legal-info-clean printvars help \
