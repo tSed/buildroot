@@ -5,6 +5,8 @@
 
 == Debugging Buildroot
 
+=== Running scripts before and after each build step
+
 It is possible to instrument the steps +Buildroot+ does when building
 packages. Define the variable +BR2_INSTRUMENTATION_SCRIPTS+ to contain
 the path of one or more scripts (or other executables), in a
@@ -41,3 +43,18 @@ The script has access to the following variables:
   - +BINARIES_DIR+: the place where all binary files (aka images) are
     stored
   - +BASE_DIR+: the base output directory
+
+=== Debugging shell scripts in Buildroot
+
+For shell scripts using the _shell modules_ (available in
++support/scripts/shell/+), an environment variable is available to trace
+the scripts:
+
+  - +SHELL_DEBUG+ adjustes the debug level, from 0 to 3 (only errors to
+    all debug messages)
+
+To enable these debug outputs:
+
+----
+SHELL_DEBUG=3 make
+----
