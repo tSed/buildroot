@@ -38,7 +38,10 @@
 # This module is sensitive to the following environment variables:
 #   READELF
 
-source.declare_module readelf
+if test ${0##*/} = "readelf.sh" ; then
+    TOPDIR=$(readlink -f "$(dirname "${0}")/../../..")
+    source "${TOPDIR}/support/scripts/shell/source.sh"
+fi
 
 # When calling readelf(1) program, the user's locale will be overriden with the
 # C locale, so we are sure we can reliably parse its output.
@@ -319,3 +322,65 @@ readelf.string_section() {
     local file="${1}" section="${2}"
     LC_ALL=C "${READELF}" --string-dump "${section}" "${file}" 2>/dev/null
 }
+
+
+if test ${0##*/} = "readelf.sh" ; then
+unit_tests() {
+    set -e
+    printf "Unit tests - Module: %s\n\n" "${0##*/}"
+
+    local ELF_FILES TESTS_IS TESTS_FILTER
+    local i t
+
+    # Lists of files used to test is_* and filter_* functions.
+    # Update it as you wish.
+    ELF_FILES=( \
+        /usr/bin/ls \
+        /usr/lib/libz.so.1.2.8 \
+        /usr/lib/gcc/x86_64-unknown-linux-gnu/5.3.0/crtbeginS.o \
+        /media/data/data/src/tmp/br/reloc-sdk/host/usr/lib/libfl.a \
+        /tmp/mac80211.ko \
+        /usr/lib32/libg.a \
+        /usr/lib32/libc-2.22.so \
+    )
+
+    TESTS_IS=( \
+        readelf.is_elf \
+        readelf.is_elf_executable \
+        readelf.is_elf_object \
+        readelf.is_elf_shared_object \
+        readelf.is_elf_static_library \
+    )
+
+    TESTS_FILTER=( \
+        readelf.filter_elf \
+        readelf.filter_elf_executable \
+        readelf.filter_elf_object \
+        readelf.filter_elf_shared_object \
+        readelf.filter_elf_static_library \
+    )
+
+    printf "files:\n"
+    printf "  %s\n" ${ELF_FILES[@]}
+    printf "\n"
+
+    for t in ${TESTS_FILTER[@]} ; do
+        printf "%s:\n" "${t}"
+        printf "%s\n" ${ELF_FILES[@]} | ${t} | xargs printf "  %s\n"
+        printf "\n"
+    done
+
+    for i in ${ELF_FILES[@]} ; do
+        printf "%s:\n" "${i}"
+
+        for t in ${TESTS_IS[@]} ; do
+            printf "  %-30s : " "${t#*.}"
+            ${t} "${i}" && printf "yes" || printf "no"
+            printf "\n"
+        done
+        printf "\n"
+    done
+}
+
+unit_tests
+fi
