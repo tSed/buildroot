@@ -21,6 +21,10 @@
 #   utils.list_reduce
 #   utils.assert_absolute_canonical_path
 
+if test ${0##*/} = "utils.sh" ; then
+    TOPDIR=$(readlink -f "$(dirname "${0}")/../../..")
+    source "${TOPDIR}/support/scripts/shell/source.sh"
+fi
 source.declare_module utils
 
 # utils.list_has value list_items...
@@ -72,3 +76,61 @@ utils.assert_absolute_canonical_path() {
     test "$(readlink -f "${1}")" = "${1}" ||
         log.error "%s is not the absolute canonical path.\n" "${1}" >&2
 }
+
+if test ${0##*/} = "utils.sh" ; then
+unit_tests() {
+    set -e
+    printf "Unit tests - Module: %s\n\n" "${0##*/}"
+
+    local -a L TESTS_BOOL_FUNCS TESTS_BOOL_INPUTS TESTS_ALTER_FUNCS
+    local tmpdir="$(mktemp -d)"
+    local SYSROOT_PATH="${tmpdir}/path/to/some/toolchain/$(gcc -dumpmachine)/sysroot"
+
+    # setup
+    mkdir -p "${SYSROOT_PATH}"
+
+    L=( aba ab ba a b abb aa ab aba b aab )
+    TESTS_BOOL_INPUTS=( a z )
+    TESTS_BOOL_FUNCS=( \
+        utils.list_has \
+    )
+    TESTS_ALTER_FUNCS=( \
+        utils.list_reduce: \
+        utils.guess_gnu_target_name:"${SYSROOT_PATH}" \
+    )
+
+    printf "inputs:\n"
+    printf "  L = [ %s ]\n" "${L[*]}"
+    printf "\n"
+
+    local i t f a
+
+    for f in ${TESTS_BOOL_FUNCS[@]} ; do
+        printf "%s:\n" "${f}"
+
+        for i in ${TESTS_BOOL_INPUTS[@]} ; do
+            printf "  %-30s : " "L ${f#*.} '${i}' ?"
+            ${f} "${i}" ${L[@]} && printf "yes" || printf "no"
+            printf "\n"
+        done
+        printf "\n"
+    done
+
+    for t in ${TESTS_ALTER_FUNCS[@]} ; do
+        f="${t%:*}"
+        a=( "${t#*:}" )
+        if test -z "${a[0]}" ; then
+            a=( ${L[@]} )
+        fi
+        printf "%s:\n" "${f}"
+        printf "  input  : '%s'\n" "${a[*]}"
+        printf "  output : '%s'\n" "$( ${f} ${a[*]} )"
+        printf "\n"
+    done
+
+    # tear down
+    rm -rf "${tmpdir}"
+}
+
+unit_tests
+fi
