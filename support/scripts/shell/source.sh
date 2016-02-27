@@ -75,3 +75,6 @@ EOF
 }
 
 source.declare_module source
+
+# make sure logging functions are always available
+source.load_module log

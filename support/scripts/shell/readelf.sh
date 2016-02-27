@@ -58,6 +58,7 @@ fi
 # environment:
 #   READELF: readelf program path
 readelf._match_elf_regexp() {
+    log._trace_func
     local regexp="${1}" file="${2}"
     LC_ALL=C ${READELF} -h "${file}" 2>/dev/null | grep -qE "${regexp}"
 }
@@ -73,6 +74,7 @@ readelf._match_elf_regexp() {
 # environment:
 #   READELF: readelf program path
 readelf._filter_elf_regexp() {
+    log._trace_func
     local regexp="${1}"
     shift
     local in file
@@ -95,6 +97,7 @@ readelf._filter_elf_regexp() {
 # environment:
 #   READELF: readelf program path
 readelf.filter_elf() {
+    log._trace_func
     readelf._filter_elf_regexp "Class:\s+ELF" "${@}"
 }
 
@@ -109,6 +112,7 @@ readelf.filter_elf() {
 # environment:
 #   READELF: readelf program path
 readelf.filter_elf_shared_object() {
+    log._trace_func
     readelf._filter_elf_regexp "Type:\s+DYN\s\(Shared\sobject\sfile\)" "${@}"
 }
 
@@ -123,6 +127,7 @@ readelf.filter_elf_shared_object() {
 # environment:
 #   READELF: readelf program path
 readelf.filter_elf_executable() {
+    log._trace_func
     readelf._filter_elf_regexp "Type:\s+EXEC\s\(Executable\sfile\)" "${@}"
 }
 
@@ -135,6 +140,7 @@ readelf.filter_elf_executable() {
 # environment:
 #   READELF: readelf program path
 readelf.is_elf_shared_object() {
+    log._trace_func
     test "$(readelf.filter_elf_shared_object "${1}")" != ""
 }
 
@@ -147,6 +153,7 @@ readelf.is_elf_shared_object() {
 # environment:
 #   READELF: readelf program path
 readelf.is_elf_executable() {
+    log._trace_func
     test "$(readelf.filter_elf_executable "${1}")" != ""
 }
 
@@ -159,6 +166,7 @@ readelf.is_elf_executable() {
 # environment:
 #   READELF: readelf program path
 readelf.is_elf() {
+    log._trace_func
     test "$(readelf.filter_elf "${1}")" != ""
 }
 
@@ -169,6 +177,7 @@ readelf.is_elf() {
 #
 # file : path of file to be tested
 readelf.is_elf_static_library() {
+    log._trace_func
     readelf._match_elf_regexp "Type:\s+REL\s\(Relocatable\sfile\)" "${@}" &&
         readelf._match_elf_regexp "^File:\s+\S+\)$" "${@}"
 }
@@ -179,6 +188,7 @@ readelf.is_elf_static_library() {
 #
 # file : path of file to be tested
 readelf.is_elf_object() {
+    log._trace_func
     readelf._match_elf_regexp "Type:\s+REL\s\(Relocatable\sfile\)" "${@}" &&
         ! readelf._match_elf_regexp "^File:\s+\S+\)$" "${@}"
 }
@@ -192,6 +202,7 @@ readelf.is_elf_object() {
 # environment:
 #   READELF: readelf program path
 readelf.get_soname() {
+    log._trace_func
     local file="${1}"
     "${READELF}" --dynamic "${file}" |
         sed -r -e '/.* \(SONAME\) +Library soname: \[(.+)\]$/!d ; s//\1/'
@@ -210,6 +221,7 @@ readelf.get_soname() {
 # environment:
 #   READELF: readelf program path
 readelf.get_rpath() {
+    log._trace_func
     local file="${1}"
     LC_ALL=C "${READELF}" --dynamic "${file}" |
         sed -r -e '/.* \(R(UN)?PATH\) +Library r(un)?path: \[(.+)\]$/!d ; s//\3/'
@@ -224,6 +236,7 @@ readelf.get_rpath() {
 # environment:
 #   READELF: readelf program path
 readelf.get_neededs() {
+    log._trace_func
     local file="${1}"
     LC_ALL=C "${READELF}" --dynamic "${file}" |
         sed -r -e '/^.* \(NEEDED\) .*Shared library: \[(.+)\]$/!d ; s//\1/'
@@ -240,6 +253,7 @@ readelf.get_neededs() {
 # environment:
 #   READELF: readelf program path
 readelf.needs_rpath() {
+    log._trace_func
     local file="${1}"
     local basedir="${2}"
     local lib
@@ -263,6 +277,7 @@ readelf.needs_rpath() {
 # environment:
 #   READELF: readelf program path
 readelf.has_rpath() {
+    log._trace_func
     local file="${1}"
     local basedir="${2}"
     local rpath dir
@@ -289,6 +304,7 @@ readelf.has_rpath() {
 # environment:
 #   READELF: readelf program path
 readelf.list_sections() {
+    log._trace_func
     local file="${1}"
     LC_ALL=C "${READELF}" --sections "${file}" |
         sed -re '/^  \[ *[0-9]+\] (\S+).*/!d ; s//\1/' |
@@ -305,6 +321,7 @@ readelf.list_sections() {
 # environment:
 #   READELF: readelf program path
 readelf.has_section() {
+    log._trace_func
     local file="${1}" section_name="${2}"
     readelf.list_sections "${file}" | grep -q "^${section_name}$"
 }
@@ -319,6 +336,7 @@ readelf.has_section() {
 # environment:
 #   READELF: readelf program path
 readelf.string_section() {
+    log._trace_func
     local file="${1}" section="${2}"
     LC_ALL=C "${READELF}" --string-dump "${section}" "${file}" 2>/dev/null
 }
@@ -327,6 +345,7 @@ readelf.string_section() {
 if test ${0##*/} = "readelf.sh" ; then
 unit_tests() {
     set -e
+    log._trace_func
     printf "Unit tests - Module: %s\n\n" "${0##*/}"
 
     local ELF_FILES TESTS_IS TESTS_FILTER

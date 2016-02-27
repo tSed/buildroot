@@ -46,6 +46,7 @@ source.load_module readelf
 # environment:
 #   PATCHELF: patchelf program path
 patchelf.set_rpath() {
+    log._trace_func
     local file="${1}"
     shift
     local rpath="$(sed -e 's/ +/:/g' <<<"${@}")"
@@ -75,6 +76,7 @@ patchelf.set_rpath() {
 # environment:
 #   PATCHELF: patchelf program path
 patchelf.clear_rpath() {
+    log._trace_func
     local file="${1}"
     patchelf.set_rpath "${file}" ""
 }
@@ -91,6 +93,7 @@ patchelf.clear_rpath() {
 # environment:
 #   PATCHELF: patchelf program path
 patchelf.update_rpath() {
+    log._trace_func
     local basedir="${1}"
     local binary="${2}"
     shift 2
@@ -123,6 +126,7 @@ patchelf.update_rpath() {
 #   PATCHELF: patchelf program path
 #   READELF : readelf program path
 patchelf.sanitize_rpath() {
+    log._trace_func
     local basedir="$(readlink -f "${1}")"
     local binary="${2}"
     local keep_lib_usr_lib="${3}"

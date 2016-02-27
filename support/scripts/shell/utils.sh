@@ -34,6 +34,7 @@ source.declare_module utils
 # value      : item to be checked if it is in the list
 # list_items : list of items
 utils.list_has() {
+    log._trace_func
     local key=$1
     shift
     for val in $@ ; do
@@ -51,6 +52,7 @@ utils.list_has() {
 #
 # input_list : list of items
 utils.list_reduce() {
+    log._trace_func
     local -a lout # return list
     local i
 
@@ -77,9 +79,11 @@ utils.assert_absolute_canonical_path() {
         log.error "%s is not the absolute canonical path.\n" "${1}" >&2
 }
 
+
 if test ${0##*/} = "utils.sh" ; then
 unit_tests() {
     set -e
+    log._trace_func
     printf "Unit tests - Module: %s\n\n" "${0##*/}"
 
     local -a L TESTS_BOOL_FUNCS TESTS_BOOL_INPUTS TESTS_ALTER_FUNCS

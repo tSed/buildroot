@@ -56,6 +56,15 @@ log.warn()   { :; }
 log.errorN() { local ret="${1}" ; shift ; log.trace ERROR "${@}" ; return ${ret} ; }
 log.error()  { log.errorN 1 "${@}"; }
 
+# Function tracing
+log._trace_func() { :; }
+if [ -n "${SHELL_TRACE_FUNC}" ] ; then
+log._trace_func() {
+    log.trace FUNC "${FUNCNAME[1]}\n" \
+        >>"${SHELL_TRACE_FUNC_PREFIX:=/tmp/trace-func_}${my_name}"
+}
+fi
+
 # Program name
 my_name="${0##*/}"
 

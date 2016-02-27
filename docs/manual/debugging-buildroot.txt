@@ -52,6 +52,10 @@ the scripts:
 
   - +SHELL_DEBUG+ adjustes the debug level, from 0 to 3 (only errors to
     all debug messages)
+  - +SHELL_TRACE_FUNC+ enables functions tracing; trace will be recorded
+    in +${SHELL_TRACE_FUNC_PREFIX}<script_name>+.
+  - +SHELL_TRACE_FUNC_PREFIX+: path prefix for function tracing,
+    default: +/tmp/trace-func_+
 
 To enable these debug outputs:
 

@@ -41,6 +41,7 @@ source.load_module readelf
 # path    : destination absolute path
 # start   : origin absolute path
 sdk.compute_relative_path() {
+    log._trace_func
     local basedir="${1}"
     local path="${2}"
     local start="${3}"
@@ -67,6 +68,7 @@ sdk.compute_relative_path() {
 # bindir  : binary directory absolute path
 # libdirs : list of library directories (absolute paths)
 sdk.compute_rpath() {
+    log._trace_func
     local basedir="${1}"
     local bindir="${2}"
     shift 2
