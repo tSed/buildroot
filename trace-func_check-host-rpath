@@ -1,0 +1,6 @@
+[FUNC ] check-host-rpath: readelf.needs_rpath
+[FUNC ] check-host-rpath: readelf.has_rpath
+[FUNC ] check-host-rpath: readelf.get_rpath
+[FUNC ] check-host-rpath: readelf.get_neededs
+[FUNC ] check-host-rpath: readelf.filter_elf_regexp
+[FUNC ] check-host-rpath: readelf.filter_elf_executable
