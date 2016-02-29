@@ -24,6 +24,10 @@
 # This module is sensitive to the following environment variables:
 #   READELF
 
+if test ${0##*/} = "sdk.sh" ; then
+    TOPDIR=$(readlink -f "$(dirname "${0}")/../../..")
+    source "${TOPDIR}/support/scripts/shell/source.sh"
+fi
 source.declare_module sdk
 
 source.load_module utils
@@ -73,3 +77,80 @@ sdk.compute_rpath() {
     done
     sed -e 's/ /:/g' <<<"${rpath[@]}"
 }
+
+
+if test ${0##*/} = "sdk.sh" ; then
+unit_tests() {
+    set -e
+    log._trace_func
+    printf "Unit tests - Module: %s\n\n" "${0##*/}"
+
+    local -a roots binpaths libpaths paths
+    roots=( / /path/to/some/newroot/ )
+    binpaths=( usr/bin/aaaa \
+        usr/libexec/foo/bbbb \
+        sbin/cccc \
+        usr/lib/bip/dddd
+        etc/eeee \
+    )
+    libpaths=( \
+        usr/lib/libp2 \
+        usr/lib \
+        lib \
+    )
+    paths=( ${binpaths[@]} ${libpaths[@]} )
+
+    local -a TEST_FUNCS=( \
+        sdk.compute_relative_path \
+        sdk.compute_rpath \
+    )
+
+    local f r l i p1 p2 p1_ p2_
+
+    for f in sdk.compute_relative_path ; do
+        printf "%s:\n" "${f}"
+        for r in ${roots[@]} ; do
+            for p1_ in ${r} ${paths[@]} ; do
+                for p2_ in ${r} ${paths[@]} ; do
+                    if test "${r}" != "${p1_}" ; then
+                        p1="${r}${p1_}"
+                    else
+                        p1="${r}"
+                    fi
+                    if test "${r}" != "${p2_}" ; then
+                        p2="${r}${p2_}"
+                    else
+                        p2="${r}"
+                    fi
+                    printf "  basedir : '%s'\n" "${r}"
+                    printf "  path    : '%s'\n" "${p1}"
+                    printf "  start   : '%s'\n" "${p2}"
+                    printf "  relpath : '%s'\n" "$( ${f} ${r} ${p1} ${p2} )"
+                    printf "\n"
+                done
+            done
+        done
+    done
+
+    for f in sdk.compute_rpath ; do
+        printf "%s:\n" "${f}"
+        for r in ${roots[@]} ; do
+            for p1_ in ${binpaths[@]} ; do
+                l=$(( RANDOM % (${#libpaths[@]} + 1) ))
+                p1="${r}${p1_%/*}"
+                p2=()
+                for i in $(seq ${l}) ; do
+                    p2+=( "${r}${libpaths[${i}]}" )
+                done
+                printf "  basedir : '%s'\n" "${r}"
+                printf "  bindir  : '%s'\n" "${p1}"
+                printf "  libdirs : '%s'\n" "${p2[*]}"
+                printf "  rpath   : '%s'\n" "$( ${f} ${r} ${p1} ${p2[@]} )"
+                printf "\n"
+            done
+        done
+    done
+}
+
+unit_tests
+fi
