@@ -26,6 +26,7 @@
 #   readelf.is_elf_shared_object
 #   readelf.is_elf_static_library
 #   readelf.is_elf_object
+#   readelf.get_soname
 #   readelf.get_rpath
 #   readelf.get_neededs
 #   readelf.needs_rpath
@@ -177,6 +178,20 @@ readelf.is_elf_static_library() {
 readelf.is_elf_object() {
     readelf._match_elf_regexp "Type:\s+REL\s\(Relocatable\sfile\)" "${@}" &&
         ! readelf._match_elf_regexp "^File:\s+\S+\)$" "${@}"
+}
+
+# readelf.get_soname file
+#
+# Return the SONAME of $file.
+#
+# file : ELF file path
+#
+# environment:
+#   READELF: readelf program path
+readelf.get_soname() {
+    local file="${1}"
+    "${READELF}" --dynamic "${file}" |
+        sed -r -e '/.* \(SONAME\) +Library soname: \[(.+)\]$/!d ; s//\1/'
 }
 
 # readelf.get_rpath file

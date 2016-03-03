@@ -18,6 +18,7 @@
 #
 # This module defines the following functions:
 #   patchelf.set_rpath
+#   patchelf.clear_rpath
 #   patchelf.update_rpath
 #   patchelf.sanitize_rpath
 #
@@ -63,6 +64,19 @@ patchelf.set_rpath() {
         fi
     fi
     "${PATCHELF}" --set-rpath "${rpath}" "${file}"
+}
+
+# patchelf.clear_rpath file
+#
+# Empty RPATH in $file.
+#
+# file  : ELF file path
+#
+# environment:
+#   PATCHELF: patchelf program path
+patchelf.clear_rpath() {
+    local file="${1}"
+    patchelf.set_rpath "${file}" ""
 }
 
 # patchelf.update_rpath basedir binary libdirs...
