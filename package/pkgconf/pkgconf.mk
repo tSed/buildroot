@@ -19,8 +19,12 @@ endef
 define HOST_PKGCONF_INSTALL_WRAPPER
 	$(INSTALL) -m 0755 -D package/pkgconf/pkg-config.in \
 		$(HOST_DIR)/usr/bin/pkg-config
-	$(SED) 's,@PKG_CONFIG_LIBDIR@,$(STAGING_DIR)/usr/lib/pkgconfig:$(STAGING_DIR)/usr/share/pkgconfig,' \
-		-e 's,@STAGING_DIR@,$(STAGING_DIR),' \
+	# @PKG_CONFIG_LIBDIR@ is a colon-separated list of paths to search.
+	# These paths are relative to the root of the staging directory; they will
+	# be automatically prefixed with the staging directory path by the wrapper
+	# at runtime to ensure its relocatability.
+	$(SED) 's,@PKG_CONFIG_LIBDIR@,/usr/lib/pkgconfig:/usr/share/pkgconfig,' \
+		-e 's,@STAGING_SUBDIR@,$(STAGING_SUBDIR),' \
 		$(HOST_DIR)/usr/bin/pkg-config
 endef
 
