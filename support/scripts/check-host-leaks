@@ -1,0 +1,126 @@
+#!/usr/bin/env bash
+
+# Copyright (C) 2016 Samuel Martin <s.martin49@gmail.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+
+usage() {
+  local ret="${1:-0}"
+  cat <<EOF
+
+Usage:  ${0##*/} [options] ROOT_DIR LEAK_PATH...
+
+Description:
+
+        This script scans a tree for host paths leaked into it.
+        Prints out leaks alongside with the kind of leak.
+
+Arguments:
+
+        ROOT_DIR        Path to the root of the tree to be scanned
+
+        LEAK_PATH       Paths to check for occurence. Several paths can be
+                        passed.
+                        A LEAK_PATH must be an absolute canonical path.
+                        In the Buildroot context, the LEAK_PATH are Buildroot's
+                        TOPDIR, BASE_DIR, HOST_DIR and STAGING_DIR.
+
+Options:
+
+        --exclude=PATH
+                Excludes files from ROOT_DIR starting with PATH. Obviously, the
+                excluded paths should point to some sub-location of ROOT_DIR.
+                Can be set more than once.
+                An excluded path must be an absolute canonical path.
+
+
+EOF
+  return ${ret}
+}
+
+source "${0%/*}/shell/source.sh"
+
+source.load_module log
+source.load_module utils
+source.load_module sdk
+
+main() {
+    local root_dir
+    local class_leaks
+    local excluded=()
+    local leak_paths=()
+    while test ${#} -gt 0 ; do
+        case "${1}" in
+            --exclude=*) excluded+=( "${1#*=}" )
+                ;;
+            --exclude)   shift ; excluded+=( "${1}" )
+                ;;
+            -h|--help)
+                usage
+                exit 0
+                ;;
+            *)  if test -z "${root_dir}" ; then root_dir="${1}"
+                else leak_paths+=( "${1}" )
+                fi
+                ;;
+        esac
+        shift
+    done
+
+    excluded=( $(utils.list_reduce ${excluded[@]}) )
+    leak_paths=( $(utils.list_reduce ${leak_paths[@]}) )
+
+    # sanity checks
+    if test -z "${root_dir}" ; then
+        log.error "Not enough argument: no ROOT_DIR given.\n" ||
+            usage ${?} || exit ${?}
+    fi
+    if test ${#leak_paths[@]} -lt 1 ; then
+        log.error "Not enough argument. No LEAK_PATH given.\n" ||
+            usage ${?} || exit ${?}
+    fi
+
+    local path has_non_abspath
+    for path in ${leak_paths[@]} ; do
+        utils.assert_absolute_canonical_path "${path}" || has_non_abspath=y
+    done
+    if test -n "${has_non_abspath}" ; then
+        log.error "Some LEAK_PATH are not absolute canonical paths.\n" ||
+            usage ${?} || exit ${?}
+    fi
+    has_non_abspath=
+    for path in ${excluded[@]} ; do
+        utils.assert_absolute_canonical_path "${path}" || has_non_abspath=y
+    done
+    if test -n "${has_non_abspath}" ; then
+        log.error "Some excluded path are not absolute canonical paths.\n" ||
+            usage ${?} || exit ${?}
+    fi
+
+    local re_leaks="$(sed -re 's/^/(/ ; s/$/)/ ; s/ +/|/g' <<<"${leak_paths[*]}")"
+    local re_excl="$(sed -re 's/ +/|/g' <<<"${excluded[*]}")"
+    if test -n "${re_excl}" ; then
+      re_excl="\\:^(${re_excl}):d"
+    fi
+    pushd "${root_dir}" >/dev/null
+    local f
+    grep -raEl "${re_leaks}" . |
+        sed -re "${re_excl} ; s:^\.:${root_dir}:" |
+        while read f ; do
+            printf "%s\n" "${f}"
+        done | sort
+    popd >/dev/null
+}
+main "${@}"

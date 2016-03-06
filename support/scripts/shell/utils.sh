@@ -19,6 +19,7 @@
 # This module defines the following functions:
 #   utils.list_has
 #   utils.list_reduce
+#   utils.assert_absolute_canonical_path
 
 source.declare_module utils
 
@@ -57,4 +58,17 @@ utils.list_reduce() {
     done
 
     echo ${lout[@]}
+}
+
+# utils.assert_absolute_canonical_path path
+#
+# Returns 0 if 'path' is the absolute canonical path, returns non-0
+# otherwise.
+#
+# If the test failed, an error message will be issued to stderr.
+#
+# path : path to be tested
+utils.assert_absolute_canonical_path() {
+    test "$(readlink -f "${1}")" = "${1}" ||
+        log.error "%s is not the absolute canonical path.\n" "${1}" >&2
 }

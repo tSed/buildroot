@@ -19,8 +19,15 @@
 # This module defines the following functions:
 #   sdk.compute_relative_path
 #   sdk.compute_rpath
+#   sdk.check_host_leaks
+#
+# This module is sensitive to the following environment variables:
+#   READELF
 
 source.declare_module sdk
+
+source.load_module utils
+source.load_module readelf
 
 # sdk.compute_relative_path basedir path start
 #

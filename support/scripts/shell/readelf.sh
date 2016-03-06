@@ -17,18 +17,22 @@
 # Readelf helpers
 #
 # This module defines the following functions:
+#   readelf._match_elf_regexp
 #   readelf._filter_elf_regexp
 #   readelf.filter_elf
 #   readelf.filter_elf_executable
 #   readelf.filter_elf_shared_object
 #   readelf.is_elf_executable
 #   readelf.is_elf_shared_object
+#   readelf.is_elf_static_library
+#   readelf.is_elf_object
 #   readelf.get_rpath
 #   readelf.get_neededs
 #   readelf.needs_rpath
 #   readelf.has_rpath
 #   readelf.list_sections
 #   readelf.has_section
+#   readelf.string_section
 #
 # This module is sensitive to the following environment variables:
 #   READELF
@@ -39,12 +43,28 @@ source.declare_module readelf
 # C locale, so we are sure we can reliably parse its output.
 : ${READELF:=readelf}
 
-# readelf._filter_elf_regexp filter_cmd file...
+# readelf._match_elf_regexp regexp file
 #
-# Filters ELF files WRT the given regular extended expression.
+# Returns 0 if the ELF file matches the ELF type given in extended regular
+# expression, non-0 otherwise.
+#
+# regexp     : extended regular expression
+# file       : list of files to be filtered
+#
+# environment:
+#   READELF: readelf program path
+readelf._match_elf_regexp() {
+    log._trace_func
+    local regexp="${1}" file="${2}"
+    LC_ALL=C ${READELF} -h "${file}" 2>/dev/null | grep -qE "${regexp}"
+}
+
+# readelf._filter_elf_regexp regexp file...
+#
+# Filters ELF files WRT the given extended regular expression.
 # This funtion can take one or several files, or read them from stdin.
 #
-# filter_cmd : filter command (usually based on grep)
+# regexp     : extended regular expression
 # file       : list of files to be filtered
 #
 # environment:
@@ -56,9 +76,7 @@ readelf._filter_elf_regexp() {
     test ${#} -gt 0 && in='printf "%s\n" "${@}"' || in='dd 2>/dev/null'
     eval "${in}" |
         while read file ; do
-            LC_ALL=C ${READELF} -h "${file}" 2>/dev/null |
-                grep -qE "${regexp}" ||
-                    continue
+            readelf._match_elf_regexp "${regexp}" "${file}" || continue
             printf "%s\n" "${file}"
         done
 }
@@ -127,6 +145,39 @@ readelf.is_elf_shared_object() {
 #   READELF: readelf program path
 readelf.is_elf_executable() {
     test "$(readelf.filter_elf_executable "${1}")" != ""
+}
+
+# readelf.is_elf file
+#
+# Returns 0 if $file is an ELF file, non-0 otherwise.
+#
+# file : path of file to be tested
+#
+# environment:
+#   READELF: readelf program path
+readelf.is_elf() {
+    test "$(readelf.filter_elf "${1}")" != ""
+}
+
+# readelf.is_elf_static_library file
+#
+# Return 0 if $file is a Linux static libraries, i.e. an ar-archive
+# containing *.o files.
+#
+# file : path of file to be tested
+readelf.is_elf_static_library() {
+    readelf._match_elf_regexp "Type:\s+REL\s\(Relocatable\sfile\)" "${@}" &&
+        readelf._match_elf_regexp "^File:\s+\S+\)$" "${@}"
+}
+
+# readelf.is_elf_object file
+#
+# Return 0 if $file is an ELF object file, i.e. a *.o (or *.ko) file.
+#
+# file : path of file to be tested
+readelf.is_elf_object() {
+    readelf._match_elf_regexp "Type:\s+REL\s\(Relocatable\sfile\)" "${@}" &&
+        ! readelf._match_elf_regexp "^File:\s+\S+\)$" "${@}"
 }
 
 # readelf.get_rpath file
@@ -239,4 +290,18 @@ readelf.list_sections() {
 readelf.has_section() {
     local file="${1}" section_name="${2}"
     readelf.list_sections "${file}" | grep -q "^${section_name}$"
+}
+
+# readelf.string_section file section
+#
+# Return the given $section of $file.
+#
+# file    : ELF file path
+# section : ELF section name
+#
+# environment:
+#   READELF: readelf program path
+readelf.string_section() {
+    local file="${1}" section="${2}"
+    LC_ALL=C "${READELF}" --string-dump "${section}" "${file}" 2>/dev/null
 }
