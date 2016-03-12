@@ -105,6 +105,29 @@ GLOBAL_INSTRUMENTATION_HOOKS += step_user
 endif
 
 ################################################################################
+# Helper functions fixing packages
+################################################################################
+
+# Helper fix
+#
+#   $1: the bindir path without the trailing '/' in which look for the *-config
+#       scripts
+#   $2: the root path in which the package has been installed
+#   $3: relative path between root and bindir paths (i.e. from $1 to $2)
+#   $4: the list of *-config scripts
+define fix_config_scripts
+	$(SED) "s,$(2),@ROOT_DIR@,g" \
+		-e "s,$(BASE_DIR),@BASE_DIR@,g" \
+		-e "s,^\(exec_\)\?prefix=.*,\1prefix=\$$(dirname \$$0)/$(3)/usr,g" \
+		-e "s,-I/usr/,-I@ROOT_DIR@/usr/,g" \
+		-e "s,-L/usr/,-L@ROOT_DIR@/usr/,g" \
+		-e "s,@ROOT_DIR@,\$${prefix}/..,g" \
+		-e "s,@BASE_DIR@,\$${prefix}/../$$(echo $(patsubst $(BASE_DIR)/%,%,$(2)) | \
+			sed -re 's@[^/]+/@../@g ; s@/[^/]+$$@/..@'),g" \
+		$(addprefix $(1)/,$(4))
+endef
+
+################################################################################
 # Implicit targets -- produce a stamp file for each step of a package build
 ################################################################################
 
@@ -213,17 +236,9 @@ $(BUILD_DIR)/%/.stamp_host_installed:
 	$(foreach hook,$($(PKG)_PRE_INSTALL_HOOKS),$(call $(hook))$(sep))
 	+$($(PKG)_INSTALL_CMDS)
 	$(foreach hook,$($(PKG)_POST_INSTALL_HOOKS),$(call $(hook))$(sep))
-	$(Q)if test -n "$($(RAWNAME)_CONFIG_SCRIPTS)" ; then \
+	$(Q)if test -n "$($(PKG)_CONFIG_SCRIPTS)" ; then \
 		$(call MESSAGE,"Fixing package configuration files") ;\
-			ls $(HOST_DIR)/usr/bin/*-config 2>/dev/null |\
-			xargs --no-run-if-empty \
-			$(SED)  "s,$(BASE_DIR),@BASE_DIR@,g" \
-				-e "s,$(HOST_DIR),@HOST_DIR@,g" \
-				-e "s,^\(exec_\)\?prefix=.*,\1prefix=\`dirname \$$0\`/../../usr,g" \
-				-e "s,-I/usr/,-I@HOST_DIR@/usr/,g" \
-				-e "s,-L/usr/,-L@HOST_DIR@/usr/,g" \
-				-e "s,@HOST_DIR@,$(HOST_DIR),g" \
-				-e "s,@BASE_DIR@,$(BASE_DIR),g" ;\
+		$(call fix_config_scripts,$(HOST_DIR)/usr/bin,$(HOST_DIR),../..,$($(PKG)_CONFIG_SCRIPTS)) ;\
 	fi
 	@$(call step_end,install-host)
 	$(Q)touch $@
@@ -256,14 +271,7 @@ $(BUILD_DIR)/%/.stamp_staging_installed:
 	$(foreach hook,$($(PKG)_POST_INSTALL_STAGING_HOOKS),$(call $(hook))$(sep))
 	$(Q)if test -n "$($(PKG)_CONFIG_SCRIPTS)" ; then \
 		$(call MESSAGE,"Fixing package configuration files") ;\
-			$(SED)  "s,$(BASE_DIR),@BASE_DIR@,g" \
-				-e "s,$(STAGING_DIR),@STAGING_DIR@,g" \
-				-e "s,^\(exec_\)\?prefix=.*,\1prefix=\`dirname \$$0\`/../../usr,g" \
-				-e "s,-I/usr/,-I@STAGING_DIR@/usr/,g" \
-				-e "s,-L/usr/,-L@STAGING_DIR@/usr/,g" \
-				-e "s,@STAGING_DIR@,$(STAGING_DIR),g" \
-				-e "s,@BASE_DIR@,$(BASE_DIR),g" \
-				$(addprefix $(STAGING_DIR)/usr/bin/,$($(PKG)_CONFIG_SCRIPTS)) ;\
+		$(call fix_config_scripts,$(STAGING_DIR)/usr/bin,$(STAGING_DIR),../..,$($(PKG)_CONFIG_SCRIPTS)) ;\
 	fi
 	@$(call MESSAGE,"Fixing libtool files")
 	$(Q)find $(STAGING_DIR)/usr/lib* -name "*.la" | xargs --no-run-if-empty \
@@ -453,6 +461,12 @@ endif
 # so these are the defaults for FOO_ACTUAL_*.
 $(2)_ACTUAL_SOURCE_TARBALL ?= $$($(2)_SOURCE)
 $(2)_ACTUAL_SOURCE_SITE    ?= $$(call qstrip,$$($(2)_SITE))
+
+ifndef $(2)_CONFIG_SCRIPTS
+ ifdef $(3)_CONFIG_SCRIPTS
+  $(2)_CONFIG_SCRIPTS = $$($(3)_CONFIG_SCRIPTS)
+ endif
+endif
 
 ifndef $(2)_PATCH
  ifdef $(3)_PATCH
