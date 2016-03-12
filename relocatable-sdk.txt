@@ -74,6 +74,10 @@ Relocatability fixes
 Misc.
 -----
 
+* check and write down $(...) or `...` rules in wrappers, c.f.:
+  - http://lists.busybox.net/pipermail/buildroot/2016-March/155893.html
+  - http://stackoverflow.com/questions/4708549/whats-the-difference-between-command-and-command-in-shell-programming
+
 * Integrate Yann's branch: d62d6f6 - (HEAD -> yemorin/yem/hooks)
   This includes:
   - rm symlinks on *.so              => OK           : TODO
