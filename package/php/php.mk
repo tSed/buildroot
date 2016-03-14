@@ -307,13 +307,11 @@ PHP_POST_INSTALL_TARGET_HOOKS += PHP_INSTALL_FPM_CONF
 endif
 
 define PHP_EXTENSIONS_FIXUP
-	$(SED) "/prefix/ s:/usr:$(STAGING_DIR)/usr:" \
-		$(STAGING_DIR)/usr/bin/phpize
-	$(SED) "/extension_dir/ s:/usr:$(TARGET_DIR)/usr:" \
-		$(STAGING_DIR)/usr/bin/php-config
+	$(call fix_config_scripts,$(@D)/scripts,$(STAGING_DIR),../..,phpize)
+	$(SED) "/extension_dir/ s:/usr:$(TARGET_DIR)/usr:" $(@D)/scripts/php-config
 endef
 
-PHP_POST_INSTALL_TARGET_HOOKS += PHP_EXTENSIONS_FIXUP
+PHP_PRE_INSTALL_STAGING_HOOKS += PHP_EXTENSIONS_FIXUP
 
 define PHP_INSTALL_FIXUP
 	rm -rf $(TARGET_DIR)/usr/lib/php/build
