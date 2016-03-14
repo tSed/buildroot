@@ -63,13 +63,20 @@ define C_ICAP_TUNE_INSTALLATION
 	$(RM) -f $(TARGET_DIR)/etc/c-icap.*.default
 	$(SED) 's%/usr/etc/%/etc/%' $(TARGET_DIR)/etc/c-icap.conf
 	$(SED) 's%/usr/var/%/var/%' $(TARGET_DIR)/etc/c-icap.conf
-	$(SED) 's%INCDIR=.*%INCDIR=$(STAGING_DIR)/usr/include%' \
-		$(STAGING_DIR)/usr/bin/{c-icap,c-icap-libicapapi}-config
-	$(SED) 's%INCDIR2=.*%INCDIR2=$(STAGING_DIR)/usr/include/c_icap%' \
-		$(STAGING_DIR)/usr/bin/{c-icap,c-icap-libicapapi}-config
-	$(SED) 's%-L$$LIBDIR %%' $(STAGING_DIR)/usr/bin/c-icap-libicapapi-config
 endef
 
 C_ICAP_POST_INSTALL_TARGET_HOOKS += C_ICAP_TUNE_INSTALLATION
+
+# Tweak the *-config scripts to play nicely with the infrastructure:
+#  - Before installation: make the *-config scripts not-relocatable in a
+#    pre-install-staging-hook
+#  - After the installation, the Buildroot infrastructure hook making
+#    them relocatable will fix them in a post-install-staging-hook
+define C_ICAP_FIX_CONFIG_SCRIPTS
+	$(SED) 's%INCDIR=.*%INCDIR=$(STAGING_DIR)/usr/include%' \
+		-e 's%INCDIR2=.*%INCDIR2=$(STAGING_DIR)/usr/include/c_icap%' \
+		$(addprefix $(@D),$(C_ICAP_CONFIG_SCRIPTS))
+endef
+C_ICAP_PRE_INSTALL_STAGING_HOOKS += C_ICAP_FIX_CONFIG_SCRIPTS
 
 $(eval $(autotools-package))
