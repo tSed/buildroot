@@ -54,7 +54,6 @@ source.declare_module readelf
 # environment:
 #   READELF: readelf program path
 readelf._match_elf_regexp() {
-    log._trace_func
     local regexp="${1}" file="${2}"
     LC_ALL=C ${READELF} -h "${file}" 2>/dev/null | grep -qE "${regexp}"
 }
