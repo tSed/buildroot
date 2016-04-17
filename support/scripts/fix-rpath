@@ -1,0 +1,116 @@
+#!/usr/bin/env bash
+
+# Copyright (C) 2016 Samuel Martin <s.martin49@gmail.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+
+set -e
+
+usage() {
+  cat <<EOF >&2
+Usage:  ${0} TREE_KIND TREE_ROOT
+
+Description:
+
+        This script scans a tree and sanitize ELF files' RPATH found in there.
+
+        Sanitization behaves the same whatever the kindd of the processed tree, but
+        the resulting RPATH differs.
+
+        Sanitization action:
+        - remove RPATH pointing outside of the tree
+        - for RPATH pointing in the tree:
+          - if they point to standard location (/lib, /usr/lib): remove them
+          - otherwise: make them relative using \$ORIGIN
+
+        For the target tree:
+        - scan the whole tree for sanitization
+
+        For the staging tree :
+        - scan the whole tree for sanitization
+
+        For the host tree:
+        - skip the staging tree for sanitization
+        - add \$HOST_DIR/{lib,usr/lib} to RPATH (as relative pathes)
+
+Arguments:
+
+        TREE_KIND   Kind of tree to be processed.
+                    Allowed values: host, target, staging
+
+        TREE_ROOT   Path to the root of the tree to be scaned
+
+Environment:
+
+        HOST_READELF    readelf program to use for host ELF files
+                        (default: readelf)
+
+        HOST_READELF    readelf program to use for host ELF files
+                        (default: readelf)
+
+        PATCHELF        patchelf program to use
+                        (default: patchelf)
+EOF
+}
+
+source "${0%/*}/shell/source.sh"
+
+source.load_module readelf
+source.load_module patchelf
+
+: ${HOST_READELF:=readelf}
+: ${TARGET_READELF:=readelf}
+: ${PATCHELF:=patchelf}
+
+main() {
+    local tree="${1}"
+    local basedir="$(readlink -f "${2}")"
+
+    local find_args=( "${basedir}" )
+    local sanitize_extra_args=()
+    local readelf
+
+    case "${tree}" in
+        host)
+            # do not process the sysroot (only contains target binaries)
+            find_args+=( "-name" "sysroot" "-prune" "-o" )
+
+            # do not process the external toolchain installation directory to
+            # to avoid breaking it.
+            find_args+=( "-path" "*/opt/ext-toolchain" "-prune" "-o" )
+
+            # make sure RPATH will point to ${hostdir}/lib and ${hostdir}/usr/lib
+            sanitize_extra_args+=( "keep_lib_and_usr_lib" )
+
+            readelf="${HOST_READELF}"
+            ;;
+        staging|target)
+            readelf="${TARGET_READELF}"
+            ;;
+        *)
+            usage
+            exit 1
+            ;;
+    esac
+
+    find_args+=( "-type" "f" "-print" )
+
+    while read file ; do
+        READELF="${readelf}" PATCHELF="${PATCHELF}" \
+            patchelf.sanitize_rpath "${basedir}" "${file}" ${sanitize_extra_args[@]}
+    done < <(find ${find_args[@]} | readelf.filter_elf)
+}
+
+main ${@}
