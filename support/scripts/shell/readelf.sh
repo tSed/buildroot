@@ -24,11 +24,15 @@
 #   readelf.is_elf_executable
 #   readelf.is_elf_shared_object
 #   readelf.get_rpath
+#   readelf.get_neededs
+#   readelf.needs_rpath
+#   readelf.has_rpath
 #   readelf.list_sections
 #   readelf.has_section
 #
 # This module is sensitive to the following environment variables:
 #   READELF
+
 source.declare_module readelf
 
 # When calling readelf(1) program, the user's locale will be overriden with the
@@ -141,6 +145,71 @@ readelf.get_rpath() {
     local file="${1}"
     LC_ALL=C "${READELF}" --dynamic "${file}" |
         sed -r -e '/.* \(R(UN)?PATH\) +Library r(un)?path: \[(.+)\]$/!d ; s//\3/'
+}
+
+# readelf.get_neededs file
+#
+# Returns the list of the NEEDED libraries of $file.
+#
+# file : ELF file path
+#
+# environment:
+#   READELF: readelf program path
+readelf.get_neededs() {
+    local file="${1}"
+    LC_ALL=C "${READELF}" --dynamic "${file}" |
+        sed -r -e '/^.* \(NEEDED\) .*Shared library: \[(.+)\]$/!d ; s//\1/'
+}
+
+# readelf.needs_rpath file basedir
+#
+# Returns 0 if $file needs to have RPATH set, 1 otherwise.
+#
+# file    : path of file to be tested
+# basedir : path of the tree in which $basedir/lib and $basedir/usr/lib are
+#           checked for belonging to RPATH
+#
+# environment:
+#   READELF: readelf program path
+readelf.needs_rpath() {
+    local file="${1}"
+    local basedir="${2}"
+    local lib
+
+    while read lib; do
+        [ -e "${basedir}/lib/${lib}" ] && return 0
+        [ -e "${basedir}/usr/lib/${lib}" ] && return 0
+    done < <(readelf.get_neededs "${file}")
+    return 1
+}
+
+# readelf.has_rpath file basedir
+#
+# Returns 0 if $file has RPATH already set to $basedir/lib or $basedir/usr/lib,
+# or uses relative RPATH (starting with "$ORIGIN"); returns 1 otherwise.
+#
+# file    : path of file to be tested
+# basedir : path of the tree in which $basedir/lib and $basedir/usr/lib are
+#           checked for belonging to RPATH
+#
+# environment:
+#   READELF: readelf program path
+readelf.has_rpath() {
+    local file="${1}"
+    local basedir="${2}"
+    local rpath dir
+
+    while read rpath; do
+        for dir in ${rpath//:/ }; do
+            # Remove duplicate and trailing '/' for proper match
+            dir="$(sed -r -e "s:/+:/:g; s:/$::" <<<"${dir}")"
+            [ "${dir}" = "${basedir}/lib" ] && return 0
+            [ "${dir}" = "${basedir}/usr/lib" ] && return 0
+            grep -q '^\$ORIGIN/' <<<"${dir}" && return 0
+        done
+    done < <(readelf.get_rpath "${file}")
+
+    return 1
 }
 
 # readelf.list_sections file
