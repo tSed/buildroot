@@ -25,6 +25,16 @@ PYTHON3_LIBTOOL_PATCH = NO
 PYTHON3_PYDEBUG = NO
 PYTHON3_PYMALLOC = YES
 PYTHON3_WIDE_UNICODE = NO
+PYTHON3_ABI = $(subst $(space),,\
+	$(if $(filter YES,$(PYTHON3_PYDEBUG)),d) \
+	$(if $(filter YES,$(PYTHON3_PYMALLOC)),m) \
+	$(if $(BR2_USE_WCHAR),$(if $(filter YES,$(PYTHON3_WIDE_UNICODE)),u)) \
+)
+HOST_PYTHON3_ABI = $(subst $(space),,\
+	$(if $(filter YES,$(PYTHON3_PYDEBUG)),d) \
+	$(if $(filter YES,$(PYTHON3_PYMALLOC)),m) \
+	$(if $(filter YES,$(PYTHON3_WIDE_UNICODE)),u) \
+)
 
 # Python needs itself and a "pgen" program to build itself, both being
 # provided in the Python sources. So in order to cross-compile Python,
@@ -63,6 +73,26 @@ HOST_PYTHON3_CONF_OPTS += --with-wide-unicode
 else
 HOST_PYTHON3_CONF_OPTS += --without-wide-unicode
 endif
+
+# python*-config scripts:
+# In the staging tree:
+#  	there is only one version of the python interpreter, thus all *-config
+#  	scripts must be fixed.
+# In the host tree:
+# 	if python3 is enabled, the python-config script is installed; so
+# 	reflect this in the list of scripts to be fixed.
+PYTHON3_CONFIG_SCRIPTS_COMMON = \
+	python$(PYTHON3_VERSION_MAJOR)-config \
+	python3-config
+
+PYTHON3_CONFIG_SCRIPTS = \
+	python$(PYTHON3_VERSION_MAJOR)$(PYTHON3_ABI)-config \
+	$(PYTHON3_CONFIG_SCRIPTS_COMMON)
+
+HOST_PYTHON3_CONFIG_SCRIPTS = \
+	python$(PYTHON3_VERSION_MAJOR)$(HOST_PYTHON3_ABI)-config \
+	$(PYTHON3_CONFIG_SCRIPTS_COMMON) \
+	$(if $(BR2_PACKAGE_PYTHON3),python-config)
 
 # Make sure that LD_LIBRARY_PATH overrides -rpath.
 # This is needed because libpython may be installed at the same time that
@@ -205,9 +235,6 @@ PYTHON3_CONF_ENV += \
 # and the pyconfig.h files are needed at runtime.
 #
 define PYTHON3_REMOVE_USELESS_FILES
-	rm -f $(TARGET_DIR)/usr/bin/python$(PYTHON3_VERSION_MAJOR)-config
-	rm -f $(TARGET_DIR)/usr/bin/python$(PYTHON3_VERSION_MAJOR)m-config
-	rm -f $(TARGET_DIR)/usr/bin/python3-config
 	rm -f $(TARGET_DIR)/usr/bin/smtpd.py.3
 	for i in `find $(TARGET_DIR)/usr/lib/python$(PYTHON3_VERSION_MAJOR)/config-$(PYTHON3_VERSION_MAJOR)m/ \
 		-type f -not -name pyconfig.h -a -not -name Makefile` ; do \
