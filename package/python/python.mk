@@ -36,6 +36,25 @@ HOST_PYTHON_CONF_OPTS += 	\
 	--disable-ossaudiodev	\
 	--disable-pyo-build
 
+# python*-config scripts:
+# In the staging tree:
+#  	there is only one version of the python interpreter, thus all *-config
+#  	scripts must be fixed.
+# In the host tree:
+# 	if python3 is enabled, the python-config script is not installed; so
+# 	reflect this in the list of scripts to be fixed.
+PYTHON_CONFIG_SCRIPTS_COMMON = \
+	python$(PYTHON_VERSION_MAJOR)-config \
+	python2-config
+
+PYTHON_CONFIG_SCRIPTS = \
+	$(PYTHON_CONFIG_SCRIPTS_COMMON) \
+	python-config
+
+HOST_PYTHON_CONFIG_SCRIPTS = \
+	$(PYTHON_CONFIG_SCRIPTS_COMMON) \
+	$(if $(BR2_PACKAGE_PYTHON3),,python-config)
+
 # Make sure that LD_LIBRARY_PATH overrides -rpath.
 # This is needed because libpython may be installed at the same time that
 # python is called.
@@ -163,9 +182,6 @@ PYTHON_POST_PATCH_HOOKS += PYTHON_TOUCH_GRAMMAR_FILES
 # idle & smtpd.py have bad shebangs and are mostly samples
 #
 define PYTHON_REMOVE_USELESS_FILES
-	rm -f $(TARGET_DIR)/usr/bin/python$(PYTHON_VERSION_MAJOR)-config
-	rm -f $(TARGET_DIR)/usr/bin/python2-config
-	rm -f $(TARGET_DIR)/usr/bin/python-config
 	rm -f $(TARGET_DIR)/usr/bin/smtpd.py
 	for i in `find $(TARGET_DIR)/usr/lib/python$(PYTHON_VERSION_MAJOR)/config/ \
 		-type f -not -name pyconfig.h -a -not -name Makefile` ; do \
