@@ -18,6 +18,14 @@ PYTHON3_LICENSE_FILES = LICENSE
 # the Python sources, but instead use an external libffi library.
 PYTHON3_LIBTOOL_PATCH = NO
 
+# Force python ABIs (those settings reflect the defaults for the configure
+# script).
+# For further details, refer to PEP 3149:
+#   https://www.python.org/dev/peps/pep-3149/
+PYTHON3_PYDEBUG = NO
+PYTHON3_PYMALLOC = YES
+PYTHON3_WIDE_UNICODE = NO
+
 # Python needs itself and a "pgen" program to build itself, both being
 # provided in the Python sources. So in order to cross-compile Python,
 # we need to build a host Python first. This host Python is also
@@ -37,6 +45,24 @@ HOST_PYTHON3_CONF_OPTS += 	\
 	--disable-test-modules	\
 	--disable-idle3		\
 	--disable-ossaudiodev
+
+ifeq ($(PYTHON3_PYDEBUG),YES)
+HOST_PYTHON3_CONF_OPTS += --with-pydebug
+else
+HOST_PYTHON3_CONF_OPTS += --without-pydebug
+endif
+
+ifeq ($(PYTHON3_PYMALLOC),YES)
+HOST_PYTHON3_CONF_OPTS += --with-pymalloc
+else
+HOST_PYTHON3_CONF_OPTS += --without-pymalloc
+endif
+
+ifeq ($(PYTHON3_WIDE_UNICODE),YES)
+HOST_PYTHON3_CONF_OPTS += --with-wide-unicode
+else
+HOST_PYTHON3_CONF_OPTS += --without-wide-unicode
+endif
 
 # Make sure that LD_LIBRARY_PATH overrides -rpath.
 # This is needed because libpython may be installed at the same time that
@@ -132,17 +158,41 @@ PYTHON3_CONF_OPTS += \
 	--disable-tk		\
 	--disable-nis		\
 	--disable-idle3		\
-	--disable-pyc-build
+	--disable-pyo-build
 
-# Python builds two tools to generate code: 'pgen' and
-# '_freeze_importlib'. Unfortunately, for the target Python, they are
-# built for the target, while we need to run them at build time. So
-# when installing host-python, we copy them to
-# $(HOST_DIR)/usr/bin. And then, when building the target python
-# package, we tell the configure script where they are located.
-define HOST_PYTHON3_INSTALL_TOOLS
-	cp $(@D)/Parser/pgen $(HOST_DIR)/usr/bin/python-pgen
-	cp $(@D)/Programs/_freeze_importlib $(HOST_DIR)/usr/bin/python-freeze-importlib
+ifeq ($(PYTHON3_PYDEBUG),YES)
+PYTHON3_CONF_OPTS += --with-pydebug
+else
+PYTHON3_CONF_OPTS += --without-pydebug
+endif
+
+ifeq ($(PYTHON3_PYMALLOC),YES)
+PYTHON3_CONF_OPTS += --with-pymalloc
+else
+PYTHON3_CONF_OPTS += --without-pymalloc
+endif
+
+ifeq ($(PYTHON3_WIDE_UNICODE)-$(BR2_USE_WCHAR),YES-y)
+PYTHON3_CONF_OPTS += --with-wide-unicode
+else
+PYTHON3_CONF_OPTS += --without-wide-unicode
+endif
+
+# This is needed to make sure the Python build process doesn't try to
+# regenerate those files with the pgen program. Otherwise, it builds
+# pgen for the target, and tries to run it on the host.
+
+define PYTHON3_TOUCH_GRAMMAR_FILES
+	touch $(@D)/Include/graminit.h $(@D)/Python/graminit.c
+endef
+
+# This prevents the Python Makefile from regenerating the
+# Python/importlib.h header if Lib/importlib/_bootstrap.py has changed
+# because its generation is broken in a cross-compilation environment
+# and importlib.h is not used.
+
+define PYTHON3_TOUCH_IMPORTLIB_H
+	touch $(@D)/Python/importlib.h
 endef
 HOST_PYTHON3_POST_INSTALL_HOOKS += HOST_PYTHON3_INSTALL_TOOLS
 
