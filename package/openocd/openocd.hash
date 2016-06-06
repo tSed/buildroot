@@ -1,3 +1,4 @@
 # From http://sourceforge.net/projects/openocd/files/openocd/0.9.0/
 sha1 bcf99bb21f09513065b2c9ece148ace7d16cdd0c openocd-0.9.0.tar.bz2
 md5 665cc98ae9e7297e09ec6ac7235fee49 openocd-0.9.0.tar.bz2
+sha256  309a065521b9c487b4a3a0e0d6694d7c6f6208e6873532cc6ea48e471d47e358  0001-tcl-add-STM32F429I-DISC1-board-config.patch

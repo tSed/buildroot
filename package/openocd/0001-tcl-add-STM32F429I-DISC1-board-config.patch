@@ -1,0 +1,49 @@
+Fetched from: http://repo.or.cz/openocd.git/patch/0849dd71b156a2dd1c5756642a8b7a4747bd3b6b
+Upstream status: Already merged, in the next 0.10.0 release
+
+From 0849dd71b156a2dd1c5756642a8b7a4747bd3b6b Mon Sep 17 00:00:00 2001
+From: Samuel Martin <s.martin49@gmail.com>
+Date: Thu, 19 May 2016 01:15:52 +0200
+Subject: [PATCH] tcl: add STM32F429I-DISC1 board config
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Both the STM32F429I-DISC{O,1} boards are equipped with the same MCU, but
+differ by the debugging chip:
+- the STM32F429I-DISCO uses the ST-LINK/V2 chip;
+- the STM32F429I-DISC1 uses the ST-LINK/V2-B chip (which matches the USB
+  VID/PID set in stlink-v2-1.cfg).
+
+Change-Id: I07d637f72d26cf5d714472638da974eb6ca02325
+Signed-off-by: Samuel Martin <s.martin49@gmail.com>
+Reviewed-on: http://openocd.zylin.com/3492
+Reviewed-by: Andreas Färber <afaerber@suse.de>
+Tested-by: jenkins
+Reviewed-by: Freddie Chopin <freddie.chopin@gmail.com>
+---
+ tcl/board/stm32f429disc1.cfg | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+ create mode 100644 tcl/board/stm32f429disc1.cfg
+
+diff --git a/tcl/board/stm32f429disc1.cfg b/tcl/board/stm32f429disc1.cfg
+new file mode 100644
+index 0000000..9d3cdd7
+--- /dev/null
++++ b/tcl/board/stm32f429disc1.cfg
+@@ -0,0 +1,12 @@
++#
++# This is an STM32F429 discovery board with a single STM32F429ZI chip.
++# http://www.st.com/web/catalog/tools/FM116/SC959/SS1532/PF259090
++#
++
++source [find interface/stlink-v2-1.cfg]
++
++transport select hla_swd
++
++source [find target/stm32f4x.cfg]
++
++reset_config srst_only
+-- 
+2.8.3
+
