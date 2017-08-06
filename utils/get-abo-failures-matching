@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+
+# usage: get-abo-failures-matching PATTERN [DATE]
+#
+# description:
+#   Fetch the abo results matching the given date (or the latest one), and
+#   looks for package failures matching the given pattern.
+#
+# examples:
+#   Get latest cmake package failures:
+#     ./utils/get-abo-failures-matching cmake-package
+#   Get python package failures from the July 1st, 2017:
+#     ./utils/get-abo-failures-matching python-package 2017-07-01
+
+set -e
+
+YESTERDAY=$(date -d "@$(($(date +%s) - 86400))" +%Y-%m-%d)
+
+# expected date in the format: YYYY-MM-DD
+get_url_from_date() {
+  local d="${1}"
+  date -d "@$(($(date -d "${d}" +%s) + 86400))" \
+    "+http://lists.busybox.net/pipermail/buildroot/%Y-%B"
+}
+
+get_result_url_from_date() {
+  local d="${1}"
+  local base_url=$(get_url_from_date "${d}")
+  local href=$(wget -qO - "${base_url}" | \
+    sed -re "/.* (HREF|href)=\"([0-9]+\.html)\".*Build results for ${d}.*/!d ; s//\2/")
+  echo "${base_url}/${href}"
+}
+
+get_package_list_matching() {
+  git grep -l "${1}" package/ | sed -re 's@.*/([^/]+)\.mk@\1@'
+}
+
+get_regex_from_list() {
+  echo "${@}" | xargs printf "%s|" | sed -re 's/\|$//'
+}
+
+get_failing_packages_from_date_matching() {
+  local match_re="${1}"
+  local d="${2}"
+  local regex=$(get_regex_from_list $(get_package_list_matching "${match_re}"))
+  wget -qO - $(get_result_url_from_date "${d}") | \
+    sed -re  '/\| [0-9]+[ \t\n]*$/!d ; s/^ +// ; s/ \|.*//' |
+    while read pv ; do
+      echo "${pv}" | grep -E "^(${regex})" || true
+    done
+}
+
+get_failures_from_date_matching() {
+  local match_re="${1}"
+  local d="${2}"
+  local regex=$(get_regex_from_list $(get_failing_packages_from_date_matching "${match_re}" "${d}"))
+  wget -qO - $(get_result_url_from_date "${d}") | \
+    sed -re  "/^ [^\|]+ \| +(.*) \| NOK \|.*(href|HREF)=\"(.*)\".*/!d ; s//\1 \3/" |
+    while read pv url ; do
+      if echo "${pv}" | grep -qE "^(${regex})$" ; then
+        printf "  %-25s %s\n" "${pv}" "${url}"
+      fi
+    done
+}
+
+main() {
+  local match_re="${1}"
+  local d="${2:-${YESTERDAY}}"
+  printf "Build failures for %s matching \"%s\":\n" "${d}" "${match_re}"
+  get_failures_from_date_matching "${match_re}" "${d}"
+}
+
+main "${@}"
